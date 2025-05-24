@@ -6,7 +6,7 @@ PDFy is a client-side web application built with SvelteKit and ShadcnSvelte that
 folder, choose specific code and text files, preview them with syntax highlighting, and then print them to a clean,
 text-based, searchable PDF using your browser's built-in print functionality.
 
-**Live Demo:** [https://pdfy.oseifert.ch](https://pdfy.oseifert.ch) (Coming Soon!)
+**Live Demo:** [https://pdfy.oseifert.ch](https://pdfy.oseifert.ch)
 
 ## ⚠️ Important Note & Current Limitations
 
