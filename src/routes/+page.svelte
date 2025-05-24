@@ -1,241 +1,166 @@
 <script lang="ts">
-
-	import { toast } from 'svelte-sonner';
-	import { openDirectory } from '$lib/fileSystem';
-	import * as Resizable from '$lib/components/ui/resizable/index.js';
 	import { Button } from '$lib/components/ui/button';
-	import { fileTree, isLoadingDirectory, rootDirectoryHandle, selectedFilesForPrint } from '$lib/stores';
-	import FileExplorer from '$lib/components/ui/pdfy/FileExplorer.svelte';
-	import FilePreview from '$lib/components/ui/pdfy/FilePreview.svelte';
-	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import { ArrowRight, Brackets, FileText, Lock, Rocket } from 'lucide-svelte';
 
-	let fsApiSupported = $state(true); // Assuming the API is supported
-
-	$effect(() => {
-		if (!window.showDirectoryPicker) {
-			fsApiSupported = false;
-			toast.error(
-				'Your browser does not support the File System Access API. Please use a compatible browser like Chrome or Edge.'
-			);
+	const features = [
+		{
+			icon: Lock,
+			title: 'Local & Secure',
+			description:
+				'Process files entirely in your browser. Your code never leaves your machine.'
+		},
+		{
+			icon: FileText,
+			title: 'Text-Based & Searchable',
+			description:
+				'Generate PDFs with selectable text, perfect for documentation and review.'
+		},
+		{
+			icon: Brackets,
+			title: 'Syntax Highlighting',
+			description:
+				'Beautifully highlighted code for numerous languages, powered by highlight.js.'
+		},
+		{
+			icon: Rocket,
+			title: 'Simple & Fast',
+			description:
+				'Intuitive interface. Select your folder, pick files, and print – it’s that easy.'
 		}
-	});
-
-	async function handleLoadFolder() {
-		isLoadingDirectory.set(true);
-		fileTree.set(null);
-
-		const result = await openDirectory();
-		if (result) {
-			rootDirectoryHandle.set(result.handle);
-			fileTree.set(result.tree);
-			toast.success('Directory loaded successfully!');
-		} else {
-			toast.error(
-				'Failed to load directory. Please ensure you have selected a valid folder.'
-			);
-		}
-
-		isLoadingDirectory.set(false);
-	}
-
-	function handlePrint() {
-		if ($selectedFilesForPrint.length === 0) {
-			toast.info('Please select some files to print.');
-			return;
-		}
-		window.print();
-	}
+	];
 </script>
 
 <svelte:head>
-	<title>PDFy - Code to PDF</title>
-	<style global>
-      @media print {
-          @page {
-              size: A4; /* Or 'letter' etc. */
-
-              @top-center {
-                  content: ''; /* Cleared, as file path is in FilePreview */
-                  font-size: 9pt;
-                  font-family: Arial, sans-serif;
-                  color: #555555;
-              }
-
-              @bottom-right {
-                  content: counter(page) ' / ' counter(pages); /* counter(pages) is often unsupported */
-                  font-size: 9pt;
-                  font-family: Arial, sans-serif;
-                  color: #555555;
-              }
-              @bottom-left {
-                  content: ''; /* Can add date or other info here if needed */
-              }
-          }
-
-          body,
-          html {
-              background-color: white !important;
-              color: black !important;
-              font-family: 'Times New Roman', Times, serif; /* Common print serif font */
-              height: auto !important; /* Allow content to flow naturally */
-              width: auto !important;
-              overflow: visible !important; /* Ensure all content is available for print */
-          }
-
-          /* Hide elements specifically marked as print:hidden */
-          .print\:hidden {
-              display: none !important;
-          }
-          /* Ensure elements marked print:block are indeed block */
-          .print\:block {
-              display: block !important;
-          }
-
-          /* Global reset for links in print if desired */
-          a {
-              text-decoration: none !important; /* Avoid underlines unless specifically styled */
-              color: inherit !important; /* Links should not stand out unless intended */
-          }
-          /* Optional: Show hrefs for external links
-						 a[href^="http"]::after, a[href^="https"]::after {
-								 content: " (" attr(href) ")";
-								 font-size: 0.8em;
-								 color: #337ab7;
-						 }
-					*/
-
-          /* Ensure Resizable Panes don't interfere with print layout */
-          [data-resizable-pane-group], [data-resizable-pane] {
-              display: block !important; /* Override flex/grid from resizable */
-              width: auto !important;
-              height: auto !important;
-              overflow: visible !important;
-          }
-          [data-resizable-handle] {
-              display: none !important; /* Hide resize handles */
-          }
-          .border-2, .border, .border-r-transparent { /* Reset borders that might be on panes */
-              border: none !important;
-          }
-          .rounded-tl-xl, .rounded-bl-xl {
-              border-radius: 0 !important;
-          }
-          .bg-muted\/20 { /* Reset backgrounds */
-              background-color: transparent !important;
-          }
-          .py-5, .p-2, .p-3 { /* Reset paddings if they conflict with page margins */
-              padding: 0 !important;
-          }
-          .h-full {
-              height: auto !important;
-          }
-          .w-full {
-              width: auto !important; /* Let print media decide width */
-          }
-
-          /* Ensure ScrollArea content is fully visible */
-          [data-radix-scroll-area-viewport] {
-              height: auto !important;
-              overflow: visible !important;
-          }
-          [data-radix-scroll-area-scrollbar] {
-              display: none !important;
-          }
-      }
-	</style>
+	<title>PDFy: Clean, Searchable Code PDFs - Fast & Local</title>
+	<meta
+		name="description"
+		content="Tired of image-based code PDFs? PDFy creates text-based, searchable PDFs with syntax highlighting, right in your browser. Secure, local, and easy to use."
+	/>
+	<meta
+		name="keywords"
+		content="pdfy, code to pdf, text-based pdf, searchable pdf, syntax highlighting, developer tool, sveltekit, local processing, print code, project documentation"
+	/>
+	<link rel="canonical" href="https://pdfy.oseifert.ch/" />
 </svelte:head>
 
-<div class="flex h-screen flex-col print:hidden">
-	<header
-		class="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 print:hidden"
-	>
-		<a href="/" class="flex items-center gap-2 font-semibold">
-			<!-- SVG Icon -->
-			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-					 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-				<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-				<polyline points="14 2 14 8 20 8"></polyline>
-				<line x1="16" y1="13" x2="8" y2="13"></line>
-				<line x1="16" y1="17" x2="8" y2="17"></line>
-				<line x1="10" y1="9" x2="8" y2="9"></line>
-			</svg>
-			<span>PDFy</span>
-		</a>
-		<Button onclick={handleLoadFolder} disabled={!fsApiSupported || $isLoadingDirectory} class="ml-auto">
-			{#if $isLoadingDirectory}
-				Loading...
-			{:else}
-				Load Project Folder
-			{/if}
-		</Button>
-		<Button variant="outline" onclick={handlePrint}>Print to PDF</Button>
+<div class="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 flex flex-col">
+	<!-- Header -->
+	<header class="py-4 px-4 sm:px-6 lg:px-8">
+		<nav class="flex items-center justify-between">
+			<a href="/" class="flex items-center gap-2 font-semibold text-xl">
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+						 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+					<polyline points="14 2 14 8 20 8"></polyline>
+					<line x1="16" y1="13" x2="8" y2="13"></line>
+					<line x1="16" y1="17" x2="8" y2="17"></line>
+					<line x1="10" y1="9" x2="8" y2="9"></line>
+				</svg>
+				<span>PDFy</span>
+			</a>
+			<Button href="/tool" variant="outline" size="sm" class="text-slate-100 border-slate-400 hover:bg-slate-700 hover:text-white">
+				Go to App
+				<ArrowRight class="ml-2 h-4 w-4" />
+			</Button>
+		</nav>
 	</header>
 
-	{#if !fsApiSupported}
-		<div class="flex flex-1 items-center justify-center p-4 print:hidden">
-			<p class="text-destructive text-center">
-				PDFy requires the File System Access API, which is not supported by your
-				browser. <br /> Please try a modern browser like Chrome, Edge, or Opera.
-			</p>
-		</div>
-	{:else}
-		<Resizable.PaneGroup direction="horizontal" class="flex-1 print:hidden">
-			<Resizable.Pane defaultSize={25} minSize={15}>
-				<div class="flex h-full items-start justify-center p-1 print:hidden">
-					{#if $isLoadingDirectory}
-						<p class="p-4 text-muted-foreground">Loading directory structure...</p>
-					{:else if $fileTree}
-						<FileExplorer tree={$fileTree} />
-					{:else}
-						<p class="p-4 text-center text-muted-foreground">
-							Click "Load Project Folder" to begin.
-						</p>
-					{/if}
-				</div>
-			</Resizable.Pane>
-			<div class="h-full flex items-center print:hidden">
-				<Resizable.Handle withHandle class="h-[80%] bg-transparent" />
-			</div>
-			<Resizable.Pane defaultSize={75} class="py-5">
-				<div
-					class="w-full h-full border-2 border-r-transparent p-2 rounded-tl-xl rounded-bl-xl bg-muted/20 print:hidden">
-					<ScrollArea class="h-full p-3">
-						{#if $selectedFilesForPrint.length === 0}
-							<p class="p-6 text-center text-muted-foreground">
-								Select files from the explorer to preview them here.
-							</p>
-						{:else}
-							{#each $selectedFilesForPrint as selectedFile, _index (selectedFile.id)}
-								{#if selectedFile.kind === "file"}
-									<FilePreview pdfyFile={selectedFile} />
-								{:else}
-									<p class="p-4 text-muted-foreground">
-										{selectedFile.name} is not a file or is not selected.
-									</p>
-								{/if}
-							{/each}
-						{/if}
-					</ScrollArea>
-				</div>
-			</Resizable.Pane>
-		</Resizable.PaneGroup>
-	{/if}
-</div>
-
-<div class="hidden print:block" aria-hidden="true">
-	{#if $selectedFilesForPrint.length === 0}
-		<p class="p-6 text-center text-muted-foreground">
-			Select files from the explorer to preview them here.
-		</p>
-	{:else}
-		{#each $selectedFilesForPrint as selectedFile, _index (selectedFile.id)}
-			{#if selectedFile.kind === "file"}
-				<FilePreview pdfyFile={selectedFile} />
-			{:else}
-				<p class="p-4 text-muted-foreground">
-					{selectedFile.name} is not a file or is not selected.
+	<!-- Hero Section -->
+	<main class="flex-grow">
+		<section class="py-16 sm:py-24 text-center px-4">
+			<div class="max-w-3xl mx-auto">
+				<h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight">
+					<span class="block xl:inline">Stop Fighting</span>
+					<span class="block text-sky-400 xl:inline">Image-Based Code PDFs.</span>
+				</h1>
+				<p class="mt-6 max-w-xl mx-auto text-lg sm:text-xl text-slate-300">
+					PDFy transforms your project files into <strong class="text-sky-300">clean, searchable, text-based PDFs</strong>
+					with syntax highlighting — all securely in your browser.
 				</p>
-			{/if}
-		{/each}
-	{/if}
+				<div class="mt-10 flex justify-center gap-4">
+					<Button href="/tool" size="lg" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold">
+						Launch PDFy Now
+						<Rocket class="ml-2 h-5 w-5" />
+					</Button>
+					<Button
+						href="https://github.com/ImGajeed76/pdfy"
+						target="_blank"
+						rel="noopener noreferrer"
+						variant="outline"
+						size="lg"
+						class="text-slate-100 border-slate-400 hover:bg-slate-700 hover:text-white"
+					>
+						View on GitHub
+					</Button>
+				</div>
+				<p class="mt-6 text-sm text-slate-400">
+					Free, open-source, and respects your privacy.
+				</p>
+			</div>
+		</section>
+
+		<!-- Features Section -->
+		<section class="py-16 sm:py-20 bg-slate-800/50">
+			<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+				<h2 class="text-3xl font-bold text-center mb-12 text-sky-400">
+					Why You'll Love PDFy
+				</h2>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+					{#each features as feature, _index (feature.title)}
+						<div class="flex items-start space-x-4 p-6 bg-slate-700/40 rounded-xl shadow-lg hover:shadow-sky-500/20 transition-shadow duration-300">
+							<div class="flex-shrink-0">
+								<svelte:component
+									this={feature.icon}
+									class="h-8 w-8 text-sky-400"
+								/>
+							</div>
+							<div>
+								<h3 class="text-xl font-semibold text-slate-100">
+									{feature.title}
+								</h3>
+								<p class="mt-1 text-slate-300">{feature.description}</p>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		</section>
+
+		<!-- Call to Action Bottom -->
+		<section class="py-16 sm:py-24 text-center px-4">
+			<div class="max-w-2xl mx-auto">
+				<h2 class="text-3xl sm:text-4xl font-bold tracking-tight">
+					Ready to Create Perfect Code PDFs?
+				</h2>
+				<p class="mt-4 text-lg text-slate-300">
+					Give PDFy a try – it's quick, easy, and runs entirely on your
+					machine.
+				</p>
+				<div class="mt-8">
+					<Button href="/tool" size="lg" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold">
+						Go to the PDFy App
+						<ArrowRight class="ml-2 h-5 w-5" />
+					</Button>
+				</div>
+			</div>
+		</section>
+	</main>
+
+	<!-- Footer -->
+	<footer class="py-8 text-center border-t border-slate-700">
+		<p class="text-slate-400">
+			PDFy &copy; {new Date().getFullYear()}. Made to solve a frustrating problem.
+		</p>
+		<p class="text-sm text-slate-500 mt-1">
+			Licensed under GNU GPL v3.0.
+			<a
+				href="https://github.com/ImGajeed76/pdfy"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="text-sky-400 hover:text-sky-300 underline"
+			>
+				View Source Code
+			</a>
+		</p>
+	</footer>
 </div>
