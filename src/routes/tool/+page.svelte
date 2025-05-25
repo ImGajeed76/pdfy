@@ -22,6 +22,7 @@
 
 	async function handleLoadFolder() {
 		isLoadingDirectory.set(true);
+		selectedFilesForPrint.set([]); // Clear selected files for print
 		fileTree.set(null);
 
 		const result = await openDirectory();
@@ -45,30 +46,22 @@
 		}
 		window.print();
 	}
+
+	let title = $derived($rootDirectoryHandle ? `${$rootDirectoryHandle.name}.pdf` : 'PDFy Project');
 </script>
 
 <svelte:head>
-	<title>PDFy - Code to PDF</title>
+	<title>{title}</title>
 	<style global>
       @media print {
           @page {
-              size: A4; /* Or 'letter' etc. */
-
-              @top-center {
-                  content: ''; /* Cleared, as file path is in FilePreview */
-                  font-size: 9pt;
-                  font-family: Arial, sans-serif;
-                  color: #555555;
-              }
+              size: A4;
 
               @bottom-right {
-                  content: counter(page) ' / ' counter(pages); /* counter(pages) is often unsupported */
+                  content: counter(page) ' / ' counter(pages);
                   font-size: 9pt;
                   font-family: Arial, sans-serif;
                   color: #555555;
-              }
-              @bottom-left {
-                  content: ''; /* Can add date or other info here if needed */
               }
           }
 

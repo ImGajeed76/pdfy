@@ -365,17 +365,17 @@
 			<div class="preview-content-area text-sm">
 				{#if needsPreCodeWrapper}
 			<pre
-				class="hljs p-3 print:p-0 m-0 rounded-none overflow-x-auto text-xs"
+				class="hljs p-3 m-0 rounded-none overflow-x-auto text-xs"
 			><code class={highlightLanguageClass}>{@html finalHtmlOutput}</code></pre>
 				{:else if pdfyFile.fileType === 'rendered' && isMd && currentRenderMode === RenderMode.Rendered}
 					<div
-						class="prose prose-sm dark:prose-invert max-w-none p-3 print:p-0 markdown-body"
+						class="prose prose-sm dark:prose-invert max-w-none p-3 markdown-body"
 					>
 						{@html finalHtmlOutput}
 					</div>
 				{:else}
 					<!-- For direct HTML/SVG output, graphic, or binary message -->
-					<div class="p-1 print:p-0">{@html finalHtmlOutput}</div>
+					<div class="p-1">{@html finalHtmlOutput}</div>
 				{/if}
 			</div>
 		</Collapsible.Content>
@@ -389,7 +389,7 @@
     :global(pre.hljs) {
         white-space: pre-wrap;   /* Allow lines to wrap */
         word-break: break-all;   /* Force break for long unbreakable strings */
-				line-height: 0.8;
+				line-height: 0.9;
         /* background-color: transparent; is already in .hljs from highlight.js theme */
     }
 
@@ -427,9 +427,32 @@
         font-size: inherit;     /* Inherit font size from .code-line (which inherits from pre.text-xs) */
     }
 
+    :global(pre.hljs code .code-line::after) {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        /*
+							Calculates the left position:
+							3.5em is the padding-left on .code-line for line numbers.
+							100ch represents the width of 100 '0' characters in the current font.
+					*/
+        left: calc(3.5em + 103ch);
+        width: 1px;
+        background-color: rgba(
+                128,
+                128,
+                128,
+                0.35
+        ); /* A subtle semi-transparent gray */
+        pointer-events: none; /* Ensures the line doesn't interfere with mouse interactions like text selection */
+        z-index: 0; /* Position it appropriately; adjust if needed based on other z-indexed elements */
+    }
+
     /* Your existing .hljs style for background, if not handled by the theme import */
     .hljs {
         background-color: transparent; /* Or inherit from parent, theme CSS might override */
+				font-size: 11px;
     }
 
 
