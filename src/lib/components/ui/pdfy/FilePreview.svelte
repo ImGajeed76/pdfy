@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { MARKDOWN_EXTENSIONS, type PDFYFileSystemEntry, RenderMode } from '$lib/types';
 	import { htmlPreviewMode, markdownPreviewMode, xmlPreviewMode } from '$lib/stores';
-	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 
 	// Highlight.js core and languages
@@ -28,8 +27,8 @@
 	import yaml from 'highlight.js/lib/languages/yaml';
 	import dockerfile from 'highlight.js/lib/languages/dockerfile';
 	import sql from 'highlight.js/lib/languages/sql';
-	// Choose a default theme for highlight.js
-	import 'highlight.js/styles/atom-one-dark.css'; // Or your preferred theme
+	import 'highlight.js/styles/atom-one-dark.css';
+
 	// Markdown renderer
 	import MarkdownIt from 'markdown-it';
 	import { determineFileDisplayProperties, readFileContent } from '$lib/fileSystem';
@@ -91,10 +90,6 @@
 	let isXml: boolean = $derived(extension === 'xml');
 	let isSvg: boolean = $derived(extension === 'svg');
 
-	let showRenderToggle = $derived(
-		pdfyFile.fileType === 'rendered' && (isMd || isHtml || isXml)
-	);
-
 	let currentRenderModeStore = $derived(
 		isMd
 			? markdownPreviewMode
@@ -107,12 +102,6 @@
 	let currentRenderMode: RenderMode = $derived(
 		currentRenderModeStore ? ($currentRenderModeStore || RenderMode.Rendered) : RenderMode.Raw
 	);
-
-	function toggleRenderMode() {
-		currentRenderModeStore?.update((mode) =>
-			mode === RenderMode.Rendered ? RenderMode.Raw : RenderMode.Rendered
-		);
-	}
 
 	// Processed content for display
 	let finalHtmlOutput: string = $derived('');
@@ -129,10 +118,9 @@
 			pdfyFile.fileType = loadingProperties.fileType;
 		}
 
-		// Temp variables for clarity, or assign directly to finalHtmlOutput
 		let newNeedsPreCodeWrapper = false;
 		let newHighlightLanguageClass = '';
-		let newFinalHtmlOutput = ''; // Use a temporary variable
+		let newFinalHtmlOutput = '';
 
 		const content = pdfyFile.content;
 		const detectedLanguage = pdfyFile.language;
@@ -349,16 +337,6 @@
 							? 'rotate-90'
 							: ''}" />
 			</Collapsible.Trigger>
-			{#if showRenderToggle}
-				<Button
-					onclick={toggleRenderMode}
-					size="sm"
-					variant="outline"
-					class="ml-2 flex-shrink-0 h-7 px-2 py-1 text-xs"
-				>
-					View {currentRenderMode === RenderMode.Rendered ? 'Raw' : 'Rendered'}
-				</Button>
-			{/if}
 		</div>
 
 		<Collapsible.Content class="border print:border-0">
