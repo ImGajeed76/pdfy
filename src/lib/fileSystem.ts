@@ -290,6 +290,10 @@ export async function readFileContent(
 			intrinsicType === "markdown"
 		) {
 			return await file.text();
+		} else if (
+			intrinsicType === "image"
+		) {
+			return URL.createObjectURL(file);
 		} else {
 			return `(Preview not available for ${intrinsicType} file: ${file.name})`;
 		}
