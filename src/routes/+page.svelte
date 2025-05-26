@@ -61,37 +61,6 @@
 		content="pdfy, code to pdf, source to pdf, multiple files to pdf, text-based pdf, searchable pdf, syntax highlighting, developer tool, sveltekit, local processing, print code, project documentation, pdfy oseifert"
 	/>
 	<link rel="canonical" href="https://pdfy.oseifert.ch/" />
-	<script type="application/ld+json">
-		{`{
-		"@context":"https://schema.org",
-		"@type":"SoftwareApplication",
-		"name":"PDFy",
-		"applicationCategory":"DeveloperTool",
-		"operatingSystem":"Web Browser",
-		"description":"PDFy transforms your source code and project files into clean, searchable,
-		              text-based PDFs with syntax highlighting — all securely in your browser.
-		              Ideal for code to PDF and multiple files to PDF tasks.",
-		"abstract":"A free tool to convert code and source files into text-based, searchable
-		            PDFs with syntax highlighting, operating locally in the browser for maximum
-		            privacy.",
-		"url":"https://pdfy.oseifert.ch/",
-		"offers":
-		    {
-		    "@type":"Offer",
-		    "price":"0",
-		    "priceCurrency":"USD"
-		    },
-		"keywords":"code to pdf, source to pdf, multiple files to pdf, searchable pdf,
-		            syntax highlighting, developer tool, local processing, print code,
-		            project documentation, pdfy",
-		"creator":
-		    {
-		    "@type":"Person",
-		    "name":"Oliver Seifert",
-		    "url":"https://oseifert.ch/"
-		    }
-		}`}
-	</script>
 </svelte:head>
 
 <div
