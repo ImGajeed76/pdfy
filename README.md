@@ -119,4 +119,4 @@ See the [LICENSE](LICENSE) file for more details.
 
 ---
 
-Made with ❤️ to solve a frustrating problem. Hope it helps you too!
+Made with ❤️ by [Oliver Seifert](https://oseifert.ch) to solve a frustrating problem. Hope it helps you too!
