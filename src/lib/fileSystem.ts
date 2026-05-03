@@ -20,8 +20,13 @@ export async function processDirectory(
   // Names of ignore files to look for (e.g., ['.gitignore', '.myignore'])
   ignoreFileNames: string[] = [".gitignore"],
   maxDepth: number = 5, // Maximum recursion depth
-  // Hardcoded names of directories/files to always ignore by their direct name
+  // Hardcoded names of directories/files to always ignore by their direct name.
+  // These are kept even when gitignore is disabled, otherwise opening a
+  // typical project would try to walk node_modules and freeze the tab.
   alwaysIgnoreNames: string[] = [".git", "node_modules", ".vscode", ".idea"],
+  // When false, .gitignore rules are NOT applied (only alwaysIgnoreNames).
+  // Used by the file tree's "show all files" toggle.
+  respectGitignore: boolean = true,
 ): Promise<PDFYFileSystemEntry[]> {
   if (maxDepth <= 0) {
     console.warn(`Max depth reached for directory: ${currentPath}`);
@@ -127,9 +132,10 @@ export async function processDirectory(
       }
     }
 
-    // Check if the entry is ignored by the aggregated rules
-    if (igChecker.ignores(pathForChecking)) {
-      continue; // Skip this ignored entry
+    // Check if the entry is ignored by the aggregated rules. Skipped
+    // entirely when the user has toggled "show gitignored files" off.
+    if (respectGitignore && igChecker.ignores(pathForChecking)) {
+      continue;
     }
 
     // Entry is not ignored, process it
@@ -156,6 +162,7 @@ export async function processDirectory(
           ignoreFileNames,
           maxDepth - 1,
           alwaysIgnoreNames,
+          respectGitignore,
         ),
       });
     }
@@ -169,14 +176,22 @@ export async function processDirectory(
   });
 }
 
-export async function openDirectory(): Promise<{
+export async function openDirectory(opts: { respectGitignore?: boolean } = {}): Promise<{
   handle: FileSystemDirectoryHandle;
   tree: PDFYFileSystemEntry[];
 } | null> {
   try {
     const handle = await window.showDirectoryPicker();
     if (handle) {
-      const tree = await processDirectory(handle);
+      const tree = await processDirectory(
+        handle,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        opts.respectGitignore,
+      );
       return { handle, tree };
     }
   } catch (error) {

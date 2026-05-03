@@ -52,10 +52,6 @@ function isLicense(name: string): boolean {
   return /^(license|licence|copying)(\..+)?$/i.test(name);
 }
 
-function isTestPath(path: string): boolean {
-  return /(^|\/)(__)?tests?(__)?\//.test(path) || /\.(test|spec)\.[a-z]+$/i.test(path);
-}
-
 function priorityOf(file: FileEntry, projectType: string): number {
   // Lower = earlier in the output.
   if (isReadme(file.name)) return 0;
@@ -81,22 +77,4 @@ export function smartAutoSelect(tree: PDFYFileSystemEntry[]): FileEntry[] {
     // Within priority bucket, alphabetical by path.
     return a.path.localeCompare(b.path);
   });
-}
-
-/**
- * Tag a file as belonging to a "Tests" / "Config" / null group based on path.
- * Used for auto-grouping if the user enables it.
- */
-export function suggestedGroup(file: FileEntry): string | null {
-  if (isTestPath(file.path)) return "Tests";
-  // Root-level config files.
-  if (
-    !file.path.includes("/") &&
-    /^(\.?(eslint|prettier|tsconfig|svelte|vite|tailwind|postcss|babel|webpack|rollup|jest|vitest)\.?[a-z]*\.?(json|js|ts|cjs|mjs|yaml|yml)?)$/i.test(
-      file.name,
-    )
-  ) {
-    return "Config";
-  }
-  return null;
 }

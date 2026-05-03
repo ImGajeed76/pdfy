@@ -8,9 +8,6 @@
 
 @import "@fontsource-variable/geist-mono";
 
-/* KaTeX styles for math rendering inside markdown. */
-@import "katex/dist/katex.min.css";
-
 /* hljs themes are dynamically loaded by the editor based on the user's
    codeTheme setting (see editor/theme.ts). The default is GitHub Light. */
 

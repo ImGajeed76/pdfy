@@ -7,13 +7,21 @@
   import FolderOpen from "@lucide/svelte/icons/folder-open";
   import Printer from "@lucide/svelte/icons/printer";
   import Settings from "@lucide/svelte/icons/settings";
+  import PanelTop from "@lucide/svelte/icons/panel-top";
   import Clock from "@lucide/svelte/icons/clock";
   import Undo2 from "@lucide/svelte/icons/undo-2";
   import Redo2 from "@lucide/svelte/icons/redo-2";
   import X from "@lucide/svelte/icons/x";
 
-  let { onOpenSettings, onOpenRecent }: { onOpenSettings: () => void; onOpenRecent: () => void } =
-    $props();
+  let {
+    onOpenSettings,
+    onOpenRecent,
+    onOpenHeaderFooter,
+  }: {
+    onOpenSettings: () => void;
+    onOpenRecent: () => void;
+    onOpenHeaderFooter: () => void;
+  } = $props();
 
   let hasProject = $derived(editor.rootHandle !== null);
   let hasEntries = $derived(editor.fileCount > 0);
@@ -47,12 +55,12 @@
   function formatPages(pages: number): string {
     if (pages === 0) return "0 pages";
     if (pages === 1) return "1 page";
-    return `~${pages} pages`;
+    return `${pages} pages`;
   }
 </script>
 
 <header
-  class="border-border/60 bg-background/85 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-40 flex items-center gap-3 border-b px-4 py-2.5 backdrop-blur sm:px-6"
+  class="border-foreground/15 bg-background/85 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-40 flex items-center gap-3 border-b px-4 py-2.5 backdrop-blur sm:px-6"
 >
   <!-- Brand -->
   <a
@@ -141,6 +149,18 @@
     >
       <Clock class="size-4" />
     </Button>
+    {#if hasProject}
+      <Button
+        variant="ghost"
+        size="sm"
+        onclick={onOpenHeaderFooter}
+        class="size-9 p-0"
+        aria-label="Headers and footers"
+        title="Headers and footers"
+      >
+        <PanelTop class="size-4" />
+      </Button>
+    {/if}
     <Button
       variant="ghost"
       size="sm"

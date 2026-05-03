@@ -3,6 +3,8 @@
   import { Button } from "$lib/components/ui/button";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import * as ToggleGroup from "$lib/components/ui/toggle-group";
+  import DatePicker from "./DatePicker.svelte";
+  import { Switch } from "$lib/components/ui/switch";
   import type { IndexEntry } from "$lib/editor/types";
   import { determineFileDisplayProperties } from "$lib/fileSystem";
   import { promptText } from "$lib/editor/prompt.svelte";
@@ -10,10 +12,12 @@
   import Moon from "@lucide/svelte/icons/moon";
   import Hash from "@lucide/svelte/icons/hash";
   import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
-  import Edit3 from "@lucide/svelte/icons/edit-3";
   import AlignLeft from "@lucide/svelte/icons/align-left";
   import AlignCenter from "@lucide/svelte/icons/align-center";
   import AlignRight from "@lucide/svelte/icons/align-right";
+  import AlignTop from "@lucide/svelte/icons/align-vertical-justify-start";
+  import AlignMiddle from "@lucide/svelte/icons/align-vertical-justify-center";
+  import AlignBottom from "@lucide/svelte/icons/align-vertical-justify-end";
 
   let selected = $derived(editor.index.filter((e) => editor.selectedIndexIds.has(e.id)));
   let count = $derived(selected.length);
@@ -49,40 +53,6 @@
     return determineFileDisplayProperties(entry.source.name).fileType === "graphic";
   }
 
-  function isRenderable(
-    entry: Extract<IndexEntry, { kind: "file" }>,
-  ): "md" | "html" | "xml" | "csv" | "svg" | "json" | null {
-    const ext = entry.source.name.split(".").pop()?.toLowerCase();
-    if (!ext) return null;
-    if (ext === "md" || ext === "markdown") return "md";
-    if (ext === "html" || ext === "htm") return "html";
-    if (ext === "xml") return "xml";
-    if (ext === "csv" || ext === "tsv") return "csv";
-    if (ext === "svg") return "svg";
-    if (ext === "json" || ext === "jsonc" || ext === "json5") return "json";
-    return null;
-  }
-
-  function effectiveRenderMode(entry: Extract<IndexEntry, { kind: "file" }>): "raw" | "rendered" {
-    if (entry.renderMode) return entry.renderMode;
-    const ext = entry.source.name.split(".").pop()?.toLowerCase();
-    if (ext === "md" || ext === "markdown") return editor.settings.defaultMarkdownMode;
-    if (ext === "html" || ext === "htm") return editor.settings.defaultHtmlMode;
-    if (ext === "xml") return editor.settings.defaultXmlMode;
-    if (ext === "csv" || ext === "tsv") return editor.settings.defaultCsvMode;
-    if (ext === "json" || ext === "jsonc" || ext === "json5")
-      return editor.settings.defaultJsonMode;
-    if (ext === "svg") return "rendered";
-    return "raw";
-  }
-
-  function setRenderMode(
-    entry: Extract<IndexEntry, { kind: "file" }>,
-    mode: "raw" | "rendered" | null,
-  ): void {
-    editor.updateEntry(entry.id, { renderMode: mode });
-  }
-
   function setLineNumbers(
     entry: Extract<IndexEntry, { kind: "file" }>,
     value: boolean | null,
@@ -109,17 +79,50 @@
     editor.updateEntry(entry.id, { imageAlign: align });
   }
 
+  function setImageVerticalAlign(
+    entry: Extract<IndexEntry, { kind: "file" }>,
+    align: "top" | "center" | "bottom",
+  ): void {
+    editor.updateEntry(entry.id, { imageVerticalAlign: align });
+  }
+
   function setImageWidth(entry: Extract<IndexEntry, { kind: "file" }>, width: number): void {
     editor.updateEntry(entry.id, { imageWidth: width });
   }
 
+  async function handleEditFontSize(): Promise<void> {
+    const next = await promptText({
+      title: "Code font size",
+      description: "Size in points.",
+      label: "Size (pt)",
+      value: String(editor.settings.codeFontSize),
+      placeholder: "9",
+    });
+    if (next === null) return;
+    const n = parseInt(next.trim(), 10);
+    if (!isNaN(n) && n > 0) editor.updateSettings({ codeFontSize: n });
+  }
+
+  async function handleEditImageWidth(entry: Extract<IndexEntry, { kind: "file" }>): Promise<void> {
+    const current = entry.imageWidth ?? editor.settings.defaultImageWidth;
+    const next = await promptText({
+      title: "Image width",
+      description: "Width as a percentage of the page.",
+      label: "Width (%)",
+      value: String(current),
+      placeholder: "100",
+    });
+    if (next === null) return;
+    const n = parseInt(next.trim(), 10);
+    if (!isNaN(n) && n > 0) setImageWidth(entry, n);
+  }
+
   function resetEntry(entry: Extract<IndexEntry, { kind: "file" }>): void {
     editor.updateEntry(entry.id, {
-      renderMode: null,
       showLineNumbers: null,
-      showPath: null,
       imageWidth: null,
       imageAlign: null,
+      imageVerticalAlign: null,
       imageMaxHeight: null,
     });
   }
@@ -149,7 +152,7 @@
 </script>
 
 <div
-  class="border-border/60 bg-muted/30 flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b px-3 py-1 text-xs"
+  class="border-foreground/15 bg-muted/30 flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b px-3 py-1 text-xs"
 >
   {#if mode === "global"}
     <span
@@ -184,23 +187,16 @@
       </DropdownMenu.Content>
     </DropdownMenu.Root>
     <!-- Font size -->
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger>
-        {#snippet child({ props })}
-          <Button {...props} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 tabular-nums">
-            <Hash class="size-3.5" />
-            {editor.settings.codeFontSize}pt
-          </Button>
-        {/snippet}
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Content>
-        {#each [8, 9, 10, 11, 12, 13, 14] as size (size)}
-          <DropdownMenu.Item onclick={() => editor.updateSettings({ codeFontSize: size })}>
-            {size}pt
-          </DropdownMenu.Item>
-        {/each}
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
+    <Button
+      variant="ghost"
+      size="sm"
+      class="h-7 gap-1.5 px-2 tabular-nums"
+      onclick={handleEditFontSize}
+      title="Click to set font size"
+    >
+      <Hash class="size-3.5" />
+      {editor.settings.codeFontSize}pt
+    </Button>
     <!-- Line numbers -->
     <Button
       variant="ghost"
@@ -230,7 +226,6 @@
   {:else if mode === "single-file"}
     {@const entry = fileEntry()}
     {#if entry}
-      {@const renderable = isRenderable(entry)}
       {@const image = isImage(entry)}
       <span
         class="text-muted-foreground mr-1 truncate font-mono text-[11px]"
@@ -239,30 +234,9 @@
         {entry.source.name}
       </span>
       <span class="bg-border/60 mx-1 h-4 w-px"></span>
-      <Button
-        variant="ghost"
-        size="sm"
-        class="h-7 gap-1.5 px-2"
-        onclick={() => setCustomTitle(entry)}
-      >
-        <Edit3 class="size-3.5" />
+      <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() => setCustomTitle(entry)}>
         {entry.customTitle ? "Title: " + entry.customTitle.slice(0, 14) : "Set title"}
       </Button>
-      {#if renderable && renderable !== "svg"}
-        {@const labelRendered =
-          renderable === "csv" ? "Table" : renderable === "json" ? "Tree" : "Rendered"}
-        <span class="bg-border/60 mx-1 h-4 w-px"></span>
-        <ToggleGroup.Root
-          type="single"
-          value={effectiveRenderMode(entry)}
-          onValueChange={(v) => v && setRenderMode(entry, v as "raw" | "rendered")}
-          variant="outline"
-          size="sm"
-        >
-          <ToggleGroup.Item value="raw" class="h-7 px-2">Raw</ToggleGroup.Item>
-          <ToggleGroup.Item value="rendered" class="h-7 px-2">{labelRendered}</ToggleGroup.Item>
-        </ToggleGroup.Root>
-      {/if}
       {#if image}
         <span class="bg-border/60 mx-1 h-4 w-px"></span>
         <ToggleGroup.Root
@@ -282,20 +256,32 @@
             <AlignRight class="size-3.5" />
           </ToggleGroup.Item>
         </ToggleGroup.Root>
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger>
-            {#snippet child({ props })}
-              <Button {...props} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 tabular-nums">
-                Width: {entry.imageWidth ?? editor.settings.defaultImageWidth}%
-              </Button>
-            {/snippet}
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content>
-            {#each [25, 50, 75, 100] as w (w)}
-              <DropdownMenu.Item onclick={() => setImageWidth(entry, w)}>{w}%</DropdownMenu.Item>
-            {/each}
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
+        <ToggleGroup.Root
+          type="single"
+          value={entry.imageVerticalAlign ?? editor.settings.defaultImageVerticalAlign}
+          onValueChange={(v) => v && setImageVerticalAlign(entry, v as "top" | "center" | "bottom")}
+          variant="outline"
+          size="sm"
+        >
+          <ToggleGroup.Item value="top" class="size-7 p-0" aria-label="Align top">
+            <AlignTop class="size-3.5" />
+          </ToggleGroup.Item>
+          <ToggleGroup.Item value="center" class="size-7 p-0" aria-label="Align middle">
+            <AlignMiddle class="size-3.5" />
+          </ToggleGroup.Item>
+          <ToggleGroup.Item value="bottom" class="size-7 p-0" aria-label="Align bottom">
+            <AlignBottom class="size-3.5" />
+          </ToggleGroup.Item>
+        </ToggleGroup.Root>
+        <Button
+          variant="ghost"
+          size="sm"
+          class="h-7 gap-1.5 px-2 tabular-nums"
+          onclick={() => handleEditImageWidth(entry)}
+          title="Click to set width"
+        >
+          Width: {entry.imageWidth ?? editor.settings.defaultImageWidth}%
+        </Button>
       {/if}
       {#if !image}
         <span class="bg-border/60 mx-1 h-4 w-px"></span>
@@ -338,31 +324,26 @@
         >Cover</span
       >
       <span class="bg-border/60 mx-1 h-4 w-px"></span>
-      <Button
-        variant="ghost"
-        size="sm"
-        class="h-7 gap-1.5 px-2"
-        onclick={() => setCoverTitle(entry)}
-      >
-        <Edit3 class="size-3.5" />
+      <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() => setCoverTitle(entry)}>
         Title: {entry.title.slice(0, 30)}
       </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        class="h-7 gap-1.5 px-2"
-        onclick={() => setCoverSubtitle(entry)}
-      >
+      <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() => setCoverSubtitle(entry)}>
         Subtitle{entry.subtitle ? ": " + entry.subtitle.slice(0, 20) : ""}
       </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        class="h-7 gap-1.5 px-2"
-        onclick={() => editor.updateEntry(entry.id, { showDate: !entry.showDate })}
-      >
-        Date: {entry.showDate ? "on" : "off"}
-      </Button>
+      {#if entry.showDate}
+        <DatePicker
+          value={entry.date}
+          onChange={(next) => editor.updateEntry(entry.id, { date: next })}
+        />
+      {/if}
+      <span class="text-muted-foreground/80 ml-1 inline-flex items-center gap-1.5 text-[11px]">
+        Show date
+        <Switch
+          checked={entry.showDate}
+          onCheckedChange={(v) => editor.updateEntry(entry.id, { showDate: v })}
+          class="scale-75"
+        />
+      </span>
     {/if}
   {:else if mode === "single-toc"}
     {@const entry = tocEntry()}
@@ -374,7 +355,7 @@
       <Button
         variant="ghost"
         size="sm"
-        class="h-7 gap-1.5 px-2"
+        class="h-7 px-2"
         onclick={async () => {
           const next = await promptText({
             title: "Table of contents title",
@@ -386,7 +367,6 @@
           editor.updateEntry(entry.id, { title: next.trim() || "Contents" });
         }}
       >
-        <Edit3 class="size-3.5" />
         Title: {entry.title}
       </Button>
     {/if}

@@ -1,15 +1,15 @@
 import { SvelteMap, SvelteSet } from "svelte/reactivity";
 import type { PDFYFileSystemEntry } from "$lib/types";
+import { openDirectory, readFileContent, processDirectory } from "$lib/fileSystem";
+import { smartAutoSelect } from "./smart-select";
+import { estimateLines, estimatePagesForEntry } from "./estimates";
+import type { GlobalSettings, IndexEntry, ProjectSettings } from "./types";
 import {
-  openDirectory,
-  readFileContent,
-  determineFileDisplayProperties,
-  processDirectory,
-} from "$lib/fileSystem";
-import { smartAutoSelect, suggestedGroup } from "./smart-select";
-import { estimateLines, estimatePages } from "./estimates";
-import type { GlobalSettings, IndexEntry, IndexGroup } from "./types";
-import { DEFAULT_SETTINGS } from "./types";
+  DEFAULT_HEADER_FOOTER,
+  DEFAULT_PROJECT_SETTINGS,
+  DEFAULT_SETTINGS,
+  DEFAULT_TOC,
+} from "./types";
 
 type FileEntry = Extract<PDFYFileSystemEntry, { kind: "file" }>;
 
@@ -43,7 +43,6 @@ class EditorState {
 
   // ── Index (the print plan) ──────────────────────────────────────────────
   index: IndexEntry[] = $state([]);
-  groups: IndexGroup[] = $state([]);
   /** Multi-select. Single click replaces, shift-click extends, cmd/ctrl
    *  toggles. Drives the contextual settings bar. */
   selectedIndexIds: SvelteSet<string> = new SvelteSet();
@@ -61,17 +60,33 @@ class EditorState {
   focusedFileId: string | null = $state(null);
   // Anchor for shift-click range-add in the tree.
   treeAnchorFileId: string | null = $state(null);
+  // "Reveal in tree" pulse: bumped on every reveal so the same file can be
+  // re-pulsed (a plain id wouldn't trigger the effect when it doesn't change).
+  revealPulseId: string | null = $state(null);
+  revealPulseTick = $state(0);
 
   // ── File content cache ──────────────────────────────────────────────────
   contentCache: SvelteMap<string, string> = new SvelteMap();
   loadingFiles: SvelteSet<string> = new SvelteSet();
 
+  // ── Measured page counts ────────────────────────────────────────────────
+  /** Actual sheet count for a code/PDF entry, written by PreviewSection
+      after pagination. Falls back to estimatePagesForEntry() when
+      missing (entry not yet rendered, or single-sheet entry like image). */
+  measuredPageCounts: SvelteMap<string, number> = new SvelteMap();
+
   // ── Settings ────────────────────────────────────────────────────────────
+  /** App-wide preferences. Persist in localStorage and follow the user
+      across every project they open in this browser. */
   settings: GlobalSettings = $state(loadSettings());
+  /** Per-project settings (header/footer templates, etc). Persist in
+      IndexedDB alongside the project's index; reset to defaults
+      whenever a fresh project is opened. */
+  projectSettings: ProjectSettings = $state({ ...DEFAULT_PROJECT_SETTINGS });
 
   // ── Undo/redo ───────────────────────────────────────────────────────────
-  private undoStack: { index: IndexEntry[]; groups: IndexGroup[] }[] = [];
-  private redoStack: { index: IndexEntry[]; groups: IndexGroup[] }[] = [];
+  private undoStack: { index: IndexEntry[] }[] = [];
+  private redoStack: { index: IndexEntry[] }[] = [];
   canUndo = $state(false);
   canRedo = $state(false);
 
@@ -86,19 +101,41 @@ class EditorState {
       return acc + estimateLines(content);
     }, 0),
   );
-  pageEstimate = $derived(
-    estimatePages(this.totalLines) +
-      (this.settings.showCover && this.index.some((e) => e.kind === "cover") ? 1 : 0) +
-      (this.settings.showToc && this.index.some((e) => e.kind === "toc")
-        ? Math.max(1, Math.ceil(this.fileEntries.length / 35))
-        : 0),
-  );
+  pageEstimate = $derived.by(() => {
+    const fileEntryCount = this.fileEntries.length;
+    let total = 0;
+    for (const e of this.index) {
+      const measured = this.measuredPageCounts.get(e.id);
+      total +=
+        measured ??
+        estimatePagesForEntry(e, this.settings, fileEntryCount, (id) => this.contentCache.get(id));
+    }
+    return total;
+  });
+
+  /** 1-based global page number where each entry begins (without the
+      pageNumberStart offset — apply that at the call site). Drives the
+      TOC's right-column page numbers and Preview's per-entry startPage. */
+  entryStartPages = $derived.by(() => {
+    const fileEntryCount = this.fileEntries.length;
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- derived snapshot, not reactive
+    const out = new Map<string, number>();
+    let acc = 0;
+    for (const e of this.index) {
+      out.set(e.id, acc + 1);
+      const measured = this.measuredPageCounts.get(e.id);
+      acc +=
+        measured ??
+        estimatePagesForEntry(e, this.settings, fileEntryCount, (id) => this.contentCache.get(id));
+    }
+    return out;
+  });
 
   // ── Actions: project ────────────────────────────────────────────────────
 
   async openProject(): Promise<{ ok: boolean; reason?: string }> {
     this.isLoadingDirectory = true;
-    const result = await openDirectory();
+    const result = await openDirectory({ respectGitignore: this.settings.respectGitignore });
     this.isLoadingDirectory = false;
     if (!result) return { ok: false, reason: "cancelled-or-error" };
     await this.adoptHandleAndTree(result.handle, result.tree, { freshTreeOnly: false });
@@ -112,13 +149,61 @@ class EditorState {
     this.isLoadingDirectory = true;
     let tree: PDFYFileSystemEntry[];
     try {
-      tree = await processDirectory(handle);
+      tree = await processDirectory(
+        handle,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        this.settings.respectGitignore,
+      );
     } catch {
       this.isLoadingDirectory = false;
       return;
     }
     this.isLoadingDirectory = false;
     await this.adoptHandleAndTree(handle, tree, { freshTreeOnly: false });
+  }
+
+  /**
+   * Re-walk the current root with the latest gitignore preference. Called
+   * by the file tree's "show gitignored" toggle so the visible tree
+   * updates without losing the user's index/groups (we're just changing
+   * what the *tree* shows; the index keeps any files already added).
+   */
+  async rescanTree(): Promise<void> {
+    if (!this.rootHandle) return;
+    this.isLoadingDirectory = true;
+    try {
+      const tree = await processDirectory(
+        this.rootHandle,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        this.settings.respectGitignore,
+      );
+      this.tree = tree;
+      // Re-expand any directories we previously had open that still exist.
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local lookup, not reactive state
+      const stillExists = new Set<string>();
+      const walk = (es: PDFYFileSystemEntry[]): void => {
+        for (const e of es) {
+          if (e.kind === "directory") {
+            stillExists.add(e.id);
+            walk(e.children);
+          }
+        }
+      };
+      walk(tree);
+      for (const id of [...this.expandedFolders]) {
+        if (!stillExists.has(id)) this.expandedFolders.delete(id);
+      }
+    } finally {
+      this.isLoadingDirectory = false;
+    }
   }
 
   /**
@@ -138,7 +223,7 @@ class EditorState {
     this.expandedFolders.clear();
     for (const e of tree) if (e.kind === "directory") this.expandedFolders.add(e.id);
     this.index = [];
-    this.groups = [];
+    this.projectSettings = { ...DEFAULT_PROJECT_SETTINGS };
     this.undoStack = [];
     this.redoStack = [];
     this.canUndo = false;
@@ -176,12 +261,26 @@ class EditorState {
       this.index = restored.state.index
         .map((entry) => {
           if (entry.kind !== "file") return entry;
+          // OS-dropped entries (added via drag from the file manager) live
+          // outside the project tree. Their handle is intact in the saved
+          // entry; keep them as-is.
+          if (entry.source.id.startsWith("__os__/")) return entry;
           const fresh = idToFile.get(entry.source.id);
-          if (!fresh) return null; // file no longer exists
+          if (!fresh) return null; // file no longer exists in the tree
           return { ...entry, source: fresh } as IndexEntry;
         })
         .filter((e): e is IndexEntry => e !== null);
-      this.groups = restored.state.groups;
+      // Restore per-project settings if the saved state included them
+      // (older saves predate this field — fall back to defaults).
+      // Field-level merge so older saves (which only had headerFooter,
+      // not toc) still get sensible defaults for the newer fields.
+      const saved = restored.state.settings;
+      this.projectSettings = saved
+        ? {
+            headerFooter: { ...DEFAULT_HEADER_FOOTER, ...saved.headerFooter },
+            toc: { ...DEFAULT_TOC, ...saved.toc },
+          }
+        : { ...DEFAULT_PROJECT_SETTINGS };
       const afterCount = this.index.filter((e) => e.kind === "file").length;
       const dropped = beforeCount - afterCount;
       // Pre-warm content for restored files.
@@ -200,7 +299,7 @@ class EditorState {
     this.rootHandle = null;
     this.tree = null;
     this.index = [];
-    this.groups = [];
+    this.projectSettings = { ...DEFAULT_PROJECT_SETTINGS };
     this.contentCache.clear();
     this.loadingFiles.clear();
     this.expandedFolders.clear();
@@ -229,6 +328,8 @@ class EditorState {
       this.expandedFolders.add(acc);
     }
     this.focusedFileId = filePath;
+    this.revealPulseId = filePath;
+    this.revealPulseTick++;
   }
 
   expandAll(tree: PDFYFileSystemEntry[] = this.tree ?? []): void {
@@ -271,10 +372,7 @@ class EditorState {
   // ── Actions: index ──────────────────────────────────────────────────────
 
   private snapshot(): void {
-    this.undoStack.push({
-      index: structuredCloneCompat(this.index),
-      groups: structuredCloneCompat(this.groups),
-    });
+    this.undoStack.push({ index: structuredCloneCompat(this.index) });
     if (this.undoStack.length > 30) this.undoStack.shift();
     this.redoStack = [];
     this.canUndo = true;
@@ -284,12 +382,8 @@ class EditorState {
   undo(): void {
     const prev = this.undoStack.pop();
     if (!prev) return;
-    this.redoStack.push({
-      index: structuredCloneCompat(this.index),
-      groups: structuredCloneCompat(this.groups),
-    });
+    this.redoStack.push({ index: structuredCloneCompat(this.index) });
     this.index = prev.index;
-    this.groups = prev.groups;
     this.canUndo = this.undoStack.length > 0;
     this.canRedo = true;
   }
@@ -297,12 +391,8 @@ class EditorState {
   redo(): void {
     const next = this.redoStack.pop();
     if (!next) return;
-    this.undoStack.push({
-      index: structuredCloneCompat(this.index),
-      groups: structuredCloneCompat(this.groups),
-    });
+    this.undoStack.push({ index: structuredCloneCompat(this.index) });
     this.index = next.index;
-    this.groups = next.groups;
     this.canUndo = true;
     this.canRedo = this.redoStack.length > 0;
   }
@@ -311,10 +401,7 @@ class EditorState {
    * Add a file to the index. Always creates a new entry — same file can be
    * added multiple times, each as its own row with its own settings.
    */
-  addFile(
-    file: FileEntry,
-    opts: { at?: number; groupId?: string | null; persistContent?: boolean } = {},
-  ): IndexEntry {
+  addFile(file: FileEntry, opts: { at?: number; persistContent?: boolean } = {}): IndexEntry {
     this.snapshot();
     // If user re-adds a previously rejected file, clear the rejection.
     if (this.learnedRejections.has(file.path)) {
@@ -325,14 +412,12 @@ class EditorState {
       id: generateId(),
       kind: "file",
       source: file,
-      groupId: opts.groupId ?? null,
       customTitle: null,
       pageBreakBefore: "auto",
-      renderMode: null,
       showLineNumbers: null,
-      showPath: null,
       imageWidth: null,
       imageAlign: null,
+      imageVerticalAlign: null,
       imageMaxHeight: null,
     };
     const at = opts.at ?? this.index.length;
@@ -347,21 +432,19 @@ class EditorState {
   /**
    * Add many files at once (e.g., from a folder drag). Single snapshot.
    */
-  addFiles(files: FileEntry[], opts: { at?: number; groupId?: string | null } = {}): void {
+  addFiles(files: FileEntry[], opts: { at?: number } = {}): void {
     if (files.length === 0) return;
     this.snapshot();
     const newEntries: IndexEntry[] = files.map((file) => ({
       id: generateId(),
       kind: "file",
       source: file,
-      groupId: opts.groupId ?? null,
       customTitle: null,
       pageBreakBefore: "auto",
-      renderMode: null,
       showLineNumbers: null,
-      showPath: null,
       imageWidth: null,
       imageAlign: null,
+      imageVerticalAlign: null,
       imageMaxHeight: null,
     }));
     const at = opts.at ?? this.index.length;
@@ -506,36 +589,6 @@ class EditorState {
     this.index = newOrder;
   }
 
-  // ── Actions: groups ─────────────────────────────────────────────────────
-
-  createGroup(label: string): IndexGroup {
-    const g: IndexGroup = { id: generateId(), label, collapsed: false };
-    this.snapshot();
-    this.groups = [...this.groups, g];
-    return g;
-  }
-
-  removeGroup(groupId: string): void {
-    this.snapshot();
-    this.groups = this.groups.filter((g) => g.id !== groupId);
-    // Un-group entries that were in it.
-    this.index = this.index.map((e) =>
-      e.kind === "file" && e.groupId === groupId ? { ...e, groupId: null } : e,
-    );
-  }
-
-  renameGroup(groupId: string, label: string): void {
-    this.snapshot();
-    this.groups = this.groups.map((g) => (g.id === groupId ? { ...g, label } : g));
-  }
-
-  toggleGroupCollapse(groupId: string): void {
-    // No snapshot: visual-only.
-    this.groups = this.groups.map((g) =>
-      g.id === groupId ? { ...g, collapsed: !g.collapsed } : g,
-    );
-  }
-
   // ── Cover & TOC specials ────────────────────────────────────────────────
 
   ensureCover(): IndexEntry {
@@ -547,6 +600,7 @@ class EditorState {
       title: this.rootName ?? "PDFy Project",
       subtitle: null,
       showDate: true,
+      date: null,
     };
     this.snapshot();
     this.index = [entry, ...this.index];
@@ -560,6 +614,7 @@ class EditorState {
       id: generateId(),
       kind: "toc",
       title: "Contents",
+      subtitle: null,
     };
     this.snapshot();
     // Place after cover if present, else first.
@@ -591,81 +646,33 @@ class EditorState {
     if (!this.tree) return;
     const ordered = smartAutoSelect(this.tree).filter((f) => !this.learnedRejections.has(f.path));
     this.smartAddedPaths = new Set(ordered.map((f) => f.path));
-    if (this.settings.autoGroup) {
-      // Map files to groups by suggested name.
-      const groupNameToId: Record<string, string> = {};
-      for (const file of ordered) {
-        const groupName = suggestedGroup(file);
-        if (groupName && !(groupName in groupNameToId)) {
-          const g = this.createGroup(groupName);
-          groupNameToId[groupName] = g.id;
-        }
-      }
-      this.snapshot();
-      const newEntries: IndexEntry[] = ordered.map((file) => {
-        const groupName = suggestedGroup(file);
-        const groupId = groupName ? (groupNameToId[groupName] ?? null) : null;
-        return {
-          id: generateId(),
-          kind: "file",
-          source: file,
-          groupId,
-          customTitle: null,
-          pageBreakBefore: "auto",
-          renderMode: null,
-          showLineNumbers: null,
-          showPath: null,
-          imageWidth: null,
-          imageAlign: null,
-          imageMaxHeight: null,
-        };
-      });
-      // Cover + TOC first if enabled.
-      const head: IndexEntry[] = [];
-      if (this.settings.showCover) {
-        head.push({
-          id: generateId(),
-          kind: "cover",
-          title: this.rootName ?? "PDFy Project",
-          subtitle: null,
-          showDate: true,
-        });
-      }
-      if (this.settings.showToc) {
-        head.push({ id: generateId(), kind: "toc", title: "Contents" });
-      }
-      this.index = [...head, ...newEntries];
-    } else {
-      this.snapshot();
-      const head: IndexEntry[] = [];
-      if (this.settings.showCover) {
-        head.push({
-          id: generateId(),
-          kind: "cover",
-          title: this.rootName ?? "PDFy Project",
-          subtitle: null,
-          showDate: true,
-        });
-      }
-      if (this.settings.showToc) {
-        head.push({ id: generateId(), kind: "toc", title: "Contents" });
-      }
-      const newEntries: IndexEntry[] = ordered.map((file) => ({
+    this.snapshot();
+    // Every fresh project gets a cover + TOC by default. Users can
+    // delete them from the index panel if they don't want them.
+    const head: IndexEntry[] = [
+      {
         id: generateId(),
-        kind: "file",
-        source: file,
-        groupId: null,
-        customTitle: null,
-        pageBreakBefore: "auto",
-        renderMode: null,
-        showLineNumbers: null,
-        showPath: null,
-        imageWidth: null,
-        imageAlign: null,
-        imageMaxHeight: null,
-      }));
-      this.index = [...head, ...newEntries];
-    }
+        kind: "cover",
+        title: this.rootName ?? "PDFy Project",
+        subtitle: null,
+        showDate: true,
+        date: null,
+      },
+      { id: generateId(), kind: "toc", title: "Contents", subtitle: null },
+    ];
+    const newEntries: IndexEntry[] = ordered.map((file) => ({
+      id: generateId(),
+      kind: "file",
+      source: file,
+      customTitle: null,
+      pageBreakBefore: "auto",
+      showLineNumbers: null,
+      imageWidth: null,
+      imageAlign: null,
+      imageVerticalAlign: null,
+      imageMaxHeight: null,
+    }));
+    this.index = [...head, ...newEntries];
     // Pre-warm content cache.
     for (const file of ordered) {
       this.ensureContent(file).catch(() => {});
@@ -675,7 +682,16 @@ class EditorState {
   // ── Settings ────────────────────────────────────────────────────────────
 
   updateSettings(patch: Partial<GlobalSettings>): void {
-    this.settings = { ...this.settings, ...patch };
+    // Mutate fields in place. Replacing the whole object would invalidate
+    // every $derived/$effect that reads any setting — even ones unrelated
+    // to the changed property. Per-property writes scope reactivity to the
+    // consumers that actually care.
+    for (const key of Object.keys(patch) as Array<keyof GlobalSettings>) {
+      const value = patch[key];
+      if (value === undefined) continue;
+      // Cast: TS can't prove key/value alignment across the union.
+      (this.settings as unknown as Record<string, unknown>)[key] = value;
+    }
     if (typeof localStorage !== "undefined") {
       try {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
@@ -685,29 +701,35 @@ class EditorState {
     }
   }
 
-  // ── Helpers for child components ────────────────────────────────────────
-
-  /**
-   * Get the effective render mode for a file entry, falling back to settings.
-   */
-  effectiveRenderMode(entry: Extract<IndexEntry, { kind: "file" }>): "raw" | "rendered" {
-    if (entry.renderMode) return entry.renderMode;
-    const props = determineFileDisplayProperties(entry.source.name);
-    if (props.fileType === "rendered") {
-      const ext = entry.source.name.split(".").pop()?.toLowerCase();
-      if (ext === "md" || ext === "markdown") return this.settings.defaultMarkdownMode;
-      if (ext === "html" || ext === "htm") return this.settings.defaultHtmlMode;
-      if (ext === "xml") return this.settings.defaultXmlMode;
+  /** Update a per-project setting (header/footer template, etc). Triggers
+      the same autosave path as index/group changes — the persistence
+      effect in editor/+page.svelte already reads `projectSettings`. */
+  updateProjectSettings(patch: Partial<ProjectSettings>): void {
+    // Same property-level mutation as updateSettings — and one level deeper
+    // for the nested headerFooter / toc objects, so e.g. changing one TOC
+    // row template doesn't invalidate header/footer consumers.
+    if (patch.headerFooter) {
+      for (const key of Object.keys(patch.headerFooter) as Array<
+        keyof ProjectSettings["headerFooter"]
+      >) {
+        const value = patch.headerFooter[key];
+        if (value === undefined) continue;
+        (this.projectSettings.headerFooter as unknown as Record<string, unknown>)[key] = value;
+      }
     }
-    return "raw";
+    if (patch.toc) {
+      for (const key of Object.keys(patch.toc) as Array<keyof ProjectSettings["toc"]>) {
+        const value = patch.toc[key];
+        if (value === undefined) continue;
+        (this.projectSettings.toc as unknown as Record<string, unknown>)[key] = value;
+      }
+    }
   }
+
+  // ── Helpers for child components ────────────────────────────────────────
 
   effectiveShowLineNumbers(entry: Extract<IndexEntry, { kind: "file" }>): boolean {
     return entry.showLineNumbers ?? this.settings.showLineNumbers;
-  }
-
-  effectiveShowPath(entry: Extract<IndexEntry, { kind: "file" }>): boolean {
-    return entry.showPath ?? this.settings.showPath;
   }
 }
 
@@ -718,7 +740,7 @@ class EditorState {
  * clone of plain fields, preserving handle references.
  */
 function structuredCloneCompat<T>(value: T): T {
-  // Our IndexEntry / IndexGroup are plain objects with primitive fields plus
+  // Our IndexEntry is a plain object with primitive fields plus
   // file-handle references that should be shared, not cloned.
   if (Array.isArray(value)) {
     return value.map((v) => structuredCloneCompat(v)) as unknown as T;
@@ -771,9 +793,10 @@ async function tryFindProjectId(handle: FileSystemDirectoryHandle): Promise<stri
   }
 }
 
-async function tryRestoreProjectState(
-  handle: FileSystemDirectoryHandle,
-): Promise<{ id: string; state: { index: IndexEntry[]; groups: IndexGroup[] } } | null> {
+async function tryRestoreProjectState(handle: FileSystemDirectoryHandle): Promise<{
+  id: string;
+  state: { index: IndexEntry[]; settings?: ProjectSettings };
+} | null> {
   try {
     const { findProjectIdForHandle, loadProjectState } = await import("./recent");
     const id = await findProjectIdForHandle(handle);
@@ -824,23 +847,56 @@ async function notifyRestored(restored: number, dropped: number): Promise<void> 
 
 /** Debounced autosave of the current project's index/groups to IDB. */
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingSave = false;
 export function scheduleAutosave(): void {
   if (saveTimer) clearTimeout(saveTimer);
   editor.isAutosaving = true;
-  saveTimer = setTimeout(async () => {
-    if (!editor.projectId) {
-      editor.isAutosaving = false;
-      return;
-    }
+  pendingSave = true;
+  saveTimer = setTimeout(() => void runAutosave(), 600);
+}
+
+async function runAutosave(): Promise<void> {
+  // If projectId hasn't been set yet (rememberAndPersist still in flight),
+  // wait briefly for it. Don't lose the user's data on the first save.
+  for (let i = 0; i < 30 && !editor.projectId; i++) {
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  if (!editor.projectId) {
+    editor.isAutosaving = false;
+    pendingSave = false;
+    return;
+  }
+  try {
+    const { saveProjectState } = await import("./recent");
+    // $state.snapshot() returns a deep, plain-object copy of the reactive
+    // proxy, which IndexedDB can structured-clone. Passing the raw proxy
+    // can fail silently.
+    await saveProjectState(editor.projectId, {
+      index: $state.snapshot(editor.index),
+      settings: $state.snapshot(editor.projectSettings),
+    });
+  } catch (err) {
+    // Surface so the user knows their work didn't save instead of failing
+    // silently. Lazy-import sonner to avoid a cycle.
     try {
-      const { saveProjectState } = await import("./recent");
-      await saveProjectState(editor.projectId, {
-        index: editor.index,
-        groups: editor.groups,
+      const { toast } = await import("svelte-sonner");
+      toast.error("Could not save project state.", {
+        description: err instanceof Error ? err.message : undefined,
       });
     } catch {
-      // non-fatal
+      // ignore
     }
-    editor.isAutosaving = false;
-  }, 600);
+  }
+  pendingSave = false;
+  editor.isAutosaving = false;
+}
+
+/** Force a save right now (e.g. on tab close). Returns when done. */
+export async function flushAutosave(): Promise<void> {
+  if (!pendingSave) return;
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  await runAutosave();
 }

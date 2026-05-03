@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as Sheet from "$lib/components/ui/sheet";
   import { Button } from "$lib/components/ui/button";
+  import { Skeleton } from "$lib/components/ui/skeleton";
   import { editor } from "$lib/editor/state.svelte";
   import { recentProjects, openRecentProject, removeRecentProject } from "$lib/editor/recent";
   import { onMount } from "svelte";
@@ -74,13 +75,23 @@
 
 <Sheet.Root bind:open>
   <Sheet.Content class="flex w-full flex-col gap-0 sm:max-w-md">
-    <Sheet.Header class="border-border/60 border-b">
+    <Sheet.Header class="border-foreground/15 border-b">
       <Sheet.Title>Recent projects</Sheet.Title>
       <Sheet.Description>Pick up a folder you've worked on before.</Sheet.Description>
     </Sheet.Header>
     <div class="flex-1 overflow-y-auto p-3">
       {#if loading}
-        <p class="text-muted-foreground p-4 text-sm">Loading…</p>
+        <ul class="space-y-1">
+          {#each [0, 1, 2, 3] as i (i)}
+            <li class="flex items-center gap-3 px-3 py-2.5">
+              <Skeleton class="size-4 shrink-0 rounded-full" />
+              <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+                <Skeleton class="h-3.5 w-44" />
+                <Skeleton class="h-3 w-24" />
+              </div>
+            </li>
+          {/each}
+        </ul>
       {:else if projects.length === 0}
         <div class="flex flex-col items-center gap-3 p-8 text-center">
           <Clock class="text-muted-foreground/40 size-10" />
@@ -122,7 +133,7 @@
         </ul>
       {/if}
     </div>
-    <Sheet.Footer class="border-border/60 border-t">
+    <Sheet.Footer class="border-foreground/15 border-t">
       <Button variant="ghost" size="sm" onclick={refresh} class="gap-2">
         <RefreshCw class="size-3.5" />
         Refresh

@@ -4,9 +4,9 @@
   import { Button } from "$lib/components/ui/button";
   import { Label } from "$lib/components/ui/label";
   import { Switch } from "$lib/components/ui/switch";
-  import { Slider } from "$lib/components/ui/slider";
   import { editor } from "$lib/editor/state.svelte";
   import { DEFAULT_SETTINGS } from "$lib/editor/types";
+  import { promptText } from "$lib/editor/prompt.svelte";
 
   let { open = $bindable(false) }: { open: boolean } = $props();
 
@@ -14,26 +14,37 @@
     editor.updateSettings({ ...DEFAULT_SETTINGS });
   }
 
-  type ToggleKey =
-    | "showLineNumbers"
-    | "showCover"
-    | "showToc"
-    | "showGroupDividers"
-    | "showPath"
-    | "autoSelect"
-    | "autoGroup";
+  type ToggleKey = "showLineNumbers" | "autoSelect" | "respectGitignore";
 
   function setBool(key: ToggleKey, value: boolean): void {
     editor.updateSettings({ [key]: value });
+  }
+
+  async function handleEditFontSize(): Promise<void> {
+    const next = await promptText({
+      title: "Code font size",
+      description: "Size in points.",
+      label: "Size (pt)",
+      value: String(editor.settings.codeFontSize),
+      placeholder: "9",
+    });
+    if (next === null) return;
+    const n = parseInt(next.trim(), 10);
+    if (!isNaN(n) && n > 0) editor.updateSettings({ codeFontSize: n });
   }
 </script>
 
 <Sheet.Root bind:open>
   <Sheet.Content class="flex w-full flex-col gap-0 sm:max-w-md">
-    <Sheet.Header class="border-border/60 border-b">
+    <Sheet.Header class="border-foreground/15 border-b">
+      <p class="text-muted-foreground/80 mb-1 font-mono text-[10px] tracking-wider uppercase">
+        App preferences · saved per browser
+      </p>
       <Sheet.Title>Settings</Sheet.Title>
       <Sheet.Description>
-        Defaults that apply to the whole project. Per-file overrides live in the contextual bar.
+        Defaults that follow you across every project you open in this browser. Per-file overrides
+        live in the contextual bar; per-project bits like headers &amp; footers live in their own
+        panel.
       </Sheet.Description>
     </Sheet.Header>
     <div class="flex-1 space-y-8 overflow-y-auto p-6">
@@ -56,21 +67,16 @@
           </ToggleGroup.Root>
         </div>
 
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <Label class="text-xs">Code font size</Label>
-            <span class="text-muted-foreground text-xs tabular-nums">
-              {editor.settings.codeFontSize}pt
-            </span>
-          </div>
-          <Slider
-            type="single"
-            value={editor.settings.codeFontSize}
-            onValueChange={(v) => editor.updateSettings({ codeFontSize: v })}
-            min={8}
-            max={14}
-            step={1}
-          />
+        <div class="flex items-center justify-between gap-4">
+          <Label class="text-sm">Code font size</Label>
+          <Button
+            variant="outline"
+            size="sm"
+            class="h-7 px-2 tabular-nums"
+            onclick={handleEditFontSize}
+          >
+            {editor.settings.codeFontSize}pt
+          </Button>
         </div>
 
         <div class="flex items-center justify-between gap-4">
@@ -78,14 +84,6 @@
           <Switch
             checked={editor.settings.showLineNumbers}
             onCheckedChange={(v) => setBool("showLineNumbers", v)}
-          />
-        </div>
-
-        <div class="flex items-center justify-between gap-4">
-          <Label class="text-sm">Show file path under title</Label>
-          <Switch
-            checked={editor.settings.showPath}
-            onCheckedChange={(v) => setBool("showPath", v)}
           />
         </div>
       </section>
@@ -107,28 +105,6 @@
             <ToggleGroup.Item value="Letter" class="flex-1">US Letter</ToggleGroup.Item>
           </ToggleGroup.Root>
         </div>
-
-        <div class="flex items-center justify-between gap-4">
-          <Label class="text-sm">Cover page</Label>
-          <Switch
-            checked={editor.settings.showCover}
-            onCheckedChange={(v) => setBool("showCover", v)}
-          />
-        </div>
-        <div class="flex items-center justify-between gap-4">
-          <Label class="text-sm">Table of contents</Label>
-          <Switch
-            checked={editor.settings.showToc}
-            onCheckedChange={(v) => setBool("showToc", v)}
-          />
-        </div>
-        <div class="flex items-center justify-between gap-4">
-          <Label class="text-sm">Group dividers</Label>
-          <Switch
-            checked={editor.settings.showGroupDividers}
-            onCheckedChange={(v) => setBool("showGroupDividers", v)}
-          />
-        </div>
       </section>
 
       <!-- Behavior -->
@@ -148,54 +124,9 @@
             class="mt-0.5"
           />
         </div>
-
-        <div class="flex items-start justify-between gap-4">
-          <div class="flex flex-col">
-            <Label class="text-sm">Auto-group tests &amp; config</Label>
-            <span class="text-muted-foreground mt-0.5 text-xs">
-              Group test files and root configs separately.
-            </span>
-          </div>
-          <Switch
-            checked={editor.settings.autoGroup}
-            onCheckedChange={(v) => setBool("autoGroup", v)}
-            class="mt-0.5"
-          />
-        </div>
-      </section>
-
-      <!-- Per-type defaults -->
-      <section class="space-y-3">
-        <h3 class="text-foreground text-sm font-semibold">Default render modes</h3>
-        <p class="text-muted-foreground text-xs">
-          Per-file overrides win. Each row is the default for new files of that type.
-        </p>
-        <div class="space-y-2">
-          {#each [{ key: "defaultMarkdownMode", label: "Markdown" }, { key: "defaultHtmlMode", label: "HTML" }, { key: "defaultXmlMode", label: "XML" }, { key: "defaultJsonMode", label: "JSON" }, { key: "defaultCsvMode", label: "CSV / TSV" }] as row (row.key)}
-            <div class="flex items-center justify-between gap-3">
-              <Label class="text-sm">{row.label}</Label>
-              <ToggleGroup.Root
-                type="single"
-                value={editor.settings[row.key as keyof typeof editor.settings] as string}
-                onValueChange={(v) => v && editor.updateSettings({ [row.key]: v })}
-                variant="outline"
-                size="sm"
-              >
-                <ToggleGroup.Item value="raw" class="px-3">Raw</ToggleGroup.Item>
-                <ToggleGroup.Item value="rendered" class="px-3">
-                  {row.key === "defaultJsonMode"
-                    ? "Tree"
-                    : row.key === "defaultCsvMode"
-                      ? "Table"
-                      : "Rendered"}
-                </ToggleGroup.Item>
-              </ToggleGroup.Root>
-            </div>
-          {/each}
-        </div>
       </section>
     </div>
-    <Sheet.Footer class="border-border/60 border-t">
+    <Sheet.Footer class="border-foreground/15 border-t">
       <Button variant="ghost" size="sm" onclick={reset}>Reset to defaults</Button>
       <Button variant="default" size="sm" onclick={() => (open = false)}>Done</Button>
     </Sheet.Footer>

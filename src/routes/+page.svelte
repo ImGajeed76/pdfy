@@ -102,7 +102,7 @@
 
 <div class="bg-background text-foreground flex min-h-screen flex-col">
   <header
-    class="border-border/50 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-30 border-b backdrop-blur-md"
+    class="border-foreground/15 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-30 border-b backdrop-blur-md"
   >
     <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 sm:px-8">
       <a href="/" class="flex items-center gap-2 text-base font-semibold tracking-tight">
@@ -203,7 +203,7 @@
     </section>
 
     <!-- HOW IT WORKS -->
-    <section class="border-border/60 border-t px-6 py-24 sm:py-32" use:reveal>
+    <section class="border-foreground/15 border-t px-6 py-24 sm:py-32" use:reveal>
       <div class="mx-auto max-w-5xl">
         <div class="mb-14 flex flex-col items-center text-center">
           <span class="text-muted-foreground mb-3 font-mono text-xs tracking-wider uppercase">
@@ -232,7 +232,7 @@
     <!-- TRUST -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <section
-      class="trust-section bg-muted/30 border-border/60 border-t px-6 py-24 sm:py-32"
+      class="trust-section bg-muted/30 border-foreground/15 border-t px-6 py-24 sm:py-32"
       onmousemove={handleCardMove}
       use:reveal
     >
@@ -266,7 +266,7 @@
 
     <!-- BOTTOM CTA -->
     <section
-      class="border-border/60 relative overflow-hidden border-t px-6 py-28 sm:py-36"
+      class="border-foreground/15 relative overflow-hidden border-t px-6 py-28 sm:py-36"
       use:reveal
     >
       <div
@@ -296,7 +296,7 @@
   </main>
 
   <!-- FOOTER -->
-  <footer class="border-border/60 relative border-t px-6 py-8">
+  <footer class="border-foreground/15 relative border-t px-6 py-8">
     <div
       class="text-muted-foreground mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 text-sm sm:flex-row"
     >

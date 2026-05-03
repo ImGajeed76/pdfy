@@ -14,6 +14,8 @@
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import ChevronsDownUp from "@lucide/svelte/icons/chevrons-down-up";
   import ChevronsUpDown from "@lucide/svelte/icons/chevrons-up-down";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
+  import Eye from "@lucide/svelte/icons/eye";
 
   function flattenAllFiles(): Extract<NonNullable<typeof editor.tree>[number], { kind: "file" }>[] {
     const out: Extract<NonNullable<typeof editor.tree>[number], { kind: "file" }>[] = [];
@@ -51,11 +53,16 @@
   }
 
   let totalFileCount = $derived(flattenAllFiles().length);
+
+  async function toggleGitignore(): Promise<void> {
+    editor.updateSettings({ respectGitignore: !editor.settings.respectGitignore });
+    await editor.rescanTree();
+  }
 </script>
 
 <aside class="bg-card flex h-full flex-col overflow-hidden">
   <!-- Top bar -->
-  <div class="border-border/60 flex items-center gap-1.5 border-b px-2 py-2">
+  <div class="border-foreground/15 flex items-center gap-1.5 border-b px-2 py-2">
     <div class="relative flex-1">
       <Search
         class="text-muted-foreground/60 pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2"
@@ -113,10 +120,32 @@
   </div>
 
   <!-- Footer -->
-  <div class="border-border/60 text-muted-foreground border-t px-3 py-2 text-xs tabular-nums">
-    {totalFileCount}
-    {totalFileCount === 1 ? "file" : "files"}
+  <div
+    class="border-foreground/15 text-muted-foreground flex items-center gap-2 border-t px-3 py-2 text-xs tabular-nums"
+  >
+    <span>
+      {totalFileCount}
+      {totalFileCount === 1 ? "file" : "files"}
+    </span>
     <span class="text-muted-foreground/40">·</span>
-    {editor.fileCount} in plan
+    <span>{editor.fileCount} in plan</span>
+    <button
+      type="button"
+      onclick={toggleGitignore}
+      disabled={editor.isLoadingDirectory}
+      class="border-foreground/15 hover:border-primary/40 hover:text-primary ml-auto inline-flex items-center gap-1 border px-1.5 py-0.5 text-[10px] transition-colors disabled:opacity-60"
+      title={editor.settings.respectGitignore
+        ? "Currently hiding files matched by .gitignore. Click to show all."
+        : "Currently showing all files (ignoring .gitignore). Click to hide gitignored."}
+      aria-label="Toggle gitignored files"
+    >
+      {#if editor.settings.respectGitignore}
+        <EyeOff class="size-3" />
+        <span>gitignored hidden</span>
+      {:else}
+        <Eye class="size-3" />
+        <span>showing all</span>
+      {/if}
+    </button>
   </div>
 </aside>

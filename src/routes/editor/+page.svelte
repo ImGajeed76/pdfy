@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import * as Resizable from "$lib/components/ui/resizable";
-  import { editor, scheduleAutosave } from "$lib/editor/state.svelte";
+  import { editor, scheduleAutosave, flushAutosave } from "$lib/editor/state.svelte";
   import { applyPageSize } from "$lib/editor/print";
   import BrandBar from "$lib/components/editor/BrandBar.svelte";
   import ContextualBar from "$lib/components/editor/ContextualBar.svelte";
@@ -12,6 +12,7 @@
   import EditorEmpty from "$lib/components/editor/EditorEmpty.svelte";
   import SettingsSheet from "$lib/components/editor/SettingsSheet.svelte";
   import RecentSheet from "$lib/components/editor/RecentSheet.svelte";
+  import HeaderFooterSheet from "$lib/components/editor/HeaderFooterSheet.svelte";
   import PromptHost from "$lib/components/editor/PromptHost.svelte";
 
   // Browser-support gate: bounce unsupported browsers to /unsupported.
@@ -24,18 +25,44 @@
   // Apply page size for print.
   $effect(() => {
     applyPageSize(editor.settings.pageSize);
+    document.documentElement.setAttribute("data-page-size", editor.settings.pageSize);
   });
 
-  // Autosave per-project state (index + groups) on every change.
+  // Mirror codeTheme onto <html data-print-theme> so the @media print CSS
+  // can switch to a dark page background when the user picks Dark.
+  $effect(() => {
+    const v = editor.settings.codeTheme === "github-dark" ? "dark" : "light";
+    document.documentElement.setAttribute("data-print-theme", v);
+  });
+
+  // Autosave per-project state (index + project settings) on every change.
   $effect(() => {
     // Read both to register dependency.
     void editor.index;
-    void editor.groups;
-    if (editor.projectId) scheduleAutosave();
+    void editor.projectSettings;
+    if (editor.rootHandle) scheduleAutosave();
   });
 
-  // Keyboard shortcuts: Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Cmd/Ctrl+P
+  // Flush any pending autosave when the user navigates away or closes the
+  // tab so the last edit isn't lost.
+  function onBeforeUnload(): void {
+    void flushAutosave();
+  }
+
+  // Keyboard shortcuts: Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Cmd/Ctrl+P, Escape
   function onKeydown(e: KeyboardEvent): void {
+    if (e.key === "Escape") {
+      // Don't clear selection while typing in an input/textarea/contenteditable.
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (t && (t as HTMLElement).isContentEditable)) {
+        return;
+      }
+      if (editor.selectedIndexIds.size > 0) {
+        editor.clearSelection();
+      }
+      return;
+    }
     const meta = e.metaKey || e.ctrlKey;
     if (!meta) return;
     if (e.key === "z" || e.key === "Z") {
@@ -52,6 +79,7 @@
 
   let settingsOpen = $state(false);
   let recentOpen = $state(false);
+  let headerFooterOpen = $state(false);
   let jumpRequest = $state<string | null>(null);
 
   function jumpTo(id: string): void {
@@ -66,19 +94,39 @@
   <meta name="robots" content="noindex" />
   <style>
     @media print {
+      /* Make backgrounds and theme colors actually print. Without this,
+         most browsers strip backgrounds in print to save ink. */
+      *,
+      *::before,
+      *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      /* No browser-injected header/footer (date, URL, page numbers).
+         The body padding inside each sheet plays the role of page margin. */
       @page {
-        margin: 1.5cm;
-        @bottom-right {
-          content: counter(page) " / " counter(pages);
-          font-size: 9pt;
-          color: #888;
-          font-family: "Geist Variable", system-ui, sans-serif;
-        }
+        margin: 0;
       }
       html,
       body {
         background: white !important;
         color: black !important;
+      }
+      /* Dark mode in print: respect the user's preview theme choice. */
+      html[data-print-theme="dark"],
+      html[data-print-theme="dark"] body {
+        background: #161616 !important;
+        color: #e7e7e7 !important;
+      }
+      html[data-print-theme="dark"] .preview-section,
+      html[data-print-theme="dark"] .preview-section .preview-body,
+      html[data-print-theme="dark"] .preview-section .toc-body,
+      html[data-print-theme="dark"] .preview-section .cover-body {
+        background: #161616 !important;
+        color: #e7e7e7 !important;
+      }
+      html[data-print-theme="dark"] .pdf-page-wrap canvas {
+        filter: invert(1) hue-rotate(180deg);
       }
       .print\:hidden {
         display: none !important;
@@ -86,90 +134,151 @@
       .print\:block {
         display: block !important;
       }
-      /* Each preview section starts on a new page in print, except the first.  */
+      /* Print = preview, 1:1. Each .preview-section is one page; the
+         flex centering used on screen is replaced with plain block flow
+         so sections fill the printable width instead of shrinking to
+         their content. */
+      .preview-stack {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        gap: 0 !important;
+      }
+      .preview-scroll {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
       .preview-section + .preview-section {
         break-before: page;
         page-break-before: always;
       }
+      /* Sheets stay full-page-sized in print too — preview = print, 1:1.
+         Each section is exactly one page; break-before puts the next
+         section on the next physical page. Flex layout is preserved so
+         image alignment (align-items, justify-content set inline) keeps
+         working in print, not just on screen. */
       .preview-section {
+        width: 100% !important;
+        max-width: none !important;
         margin: 0 !important;
         border: none !important;
-        background: transparent !important;
+        box-shadow: none !important;
+        overflow: hidden !important;
+        /* Same flex column as screen so the body grows to fill the page
+           and footer chrome sits at the bottom. */
+        display: flex !important;
+        flex-direction: column !important;
       }
-      .preview-section header {
-        position: static !important;
-        background: transparent !important;
-        backdrop-filter: none !important;
-        border: none !important;
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-        padding-bottom: 0.5cm !important;
-        border-bottom: 1px solid #ddd !important;
-        margin-bottom: 0.4cm !important;
+      html[data-page-size="A4"] .preview-section {
+        height: 297mm !important;
       }
-      .preview-section .preview-body {
-        padding: 0 !important;
+      html[data-page-size="Letter"] .preview-section {
+        height: 11in !important;
+      }
+      .preview-section .preview-body,
+      .preview-section .toc-body,
+      .preview-section .cover-body {
+        padding: 1.5cm !important;
+        overflow: hidden !important;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+      }
+      .preview-section:has(.sheet-chrome--header) .preview-body,
+      .preview-section:has(.sheet-chrome--header) .toc-body,
+      .preview-section:has(.sheet-chrome--header) .cover-body {
+        padding-top: 0 !important;
+      }
+      .preview-section:has(.sheet-chrome--footer) .preview-body,
+      .preview-section:has(.sheet-chrome--footer) .toc-body,
+      .preview-section:has(.sheet-chrome--footer) .cover-body {
+        padding-bottom: 0 !important;
       }
       .code-pre {
+        /* Wrap long lines instead of clipping or scrolling — print can't
+           scroll horizontally and we want preview = print 1:1. */
         white-space: pre-wrap !important;
-        word-break: break-word !important;
+        overflow-wrap: anywhere !important;
         background: transparent !important;
-        color: #111 !important;
       }
-      .cover-page {
-        break-after: page;
-        page-break-after: always;
-      }
-      .cover-body {
-        min-height: calc(297mm - 3cm) !important;
-        justify-content: center !important;
-      }
-      /* Hide UI chrome on cover/toc when printed */
-      .preview-section header.print\:hidden,
-      .preview-section header[class*="print:hidden"] {
+      /* Hide editor chrome so only Preview prints. The two-Preview
+         (one for screen, one for print) approach was racy — both
+         instances measured the same entries and overwrote each other's
+         page counts in editor.measuredPageCounts. Now there's one
+         Preview, mounted always, with the rest of the UI hidden here. */
+      .print-hide-chrome {
         display: none !important;
+      }
+      /* Strip the resizable layout in print: stack vertically so the
+         Preview pane uses full width regardless of the screen split. */
+      .editor-shell {
+        height: auto !important;
+        display: block !important;
+      }
+      .print-pane-group {
+        display: block !important;
+        height: auto !important;
+      }
+      .preview-pane {
+        flex: none !important;
+        width: 100% !important;
+        height: auto !important;
+        max-width: none !important;
       }
     }
   </style>
 </svelte:head>
 
-<svelte:window onkeydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} onbeforeunload={onBeforeUnload} />
 
-<div class="bg-background text-foreground flex h-screen flex-col print:hidden">
-  <BrandBar onOpenSettings={() => (settingsOpen = true)} onOpenRecent={() => (recentOpen = true)} />
+<!-- Single editor shell. Surrounding chrome (BrandBar, ContextualBar,
+     Tree, IndexPane, sheets) is hidden in print via .print-hide-chrome.
+     Preview itself stays mounted in both screen and print so its
+     code/PDF page counts measure only once and we don't get duplicate
+     numbers racing for the same entry. -->
+<div class="bg-background text-foreground editor-shell flex h-screen flex-col">
+  <div class="print-hide-chrome contents">
+    <BrandBar
+      onOpenSettings={() => (settingsOpen = true)}
+      onOpenRecent={() => (recentOpen = true)}
+      onOpenHeaderFooter={() => (headerFooterOpen = true)}
+    />
 
-  {#if editor.rootHandle}
-    <ContextualBar />
-  {/if}
+    {#if editor.rootHandle}
+      <ContextualBar />
+    {/if}
+  </div>
 
   <div class="min-h-0 flex-1">
     {#if !editor.rootHandle}
-      <EditorEmpty />
+      <div class="print-hide-chrome h-full"><EditorEmpty /></div>
     {:else}
-      <Resizable.PaneGroup direction="horizontal" autoSaveId="pdfy-editor-layout">
-        <Resizable.Pane defaultSize={20} minSize={14}>
+      <Resizable.PaneGroup
+        direction="horizontal"
+        autoSaveId="pdfy-editor-layout"
+        class="print-pane-group"
+      >
+        <Resizable.Pane defaultSize={20} minSize={14} class="print-hide-chrome">
           <Tree />
         </Resizable.Pane>
-        <Resizable.Handle />
-        <Resizable.Pane defaultSize={25} minSize={18}>
+        <Resizable.Handle class="print-hide-chrome" />
+        <Resizable.Pane defaultSize={25} minSize={18} class="print-hide-chrome">
           <IndexPane onJumpTo={jumpTo} />
         </Resizable.Pane>
-        <Resizable.Handle />
-        <Resizable.Pane defaultSize={55} minSize={30}>
+        <Resizable.Handle class="print-hide-chrome" />
+        <Resizable.Pane defaultSize={55} minSize={30} class="preview-pane">
           <Preview bind:jumpRequest />
         </Resizable.Pane>
       </Resizable.PaneGroup>
     {/if}
   </div>
 
-  <SettingsSheet bind:open={settingsOpen} />
-  <RecentSheet bind:open={recentOpen} />
-  <PromptHost />
-</div>
-
-<!-- Print-only: full document -->
-<div class="hidden print:block" aria-hidden="true">
-  <Preview bind:jumpRequest />
+  <div class="print-hide-chrome contents">
+    <SettingsSheet bind:open={settingsOpen} />
+    <RecentSheet bind:open={recentOpen} />
+    <HeaderFooterSheet bind:open={headerFooterOpen} />
+    <PromptHost />
+  </div>
 </div>
 
 <style>
@@ -195,59 +304,9 @@
     opacity: 0.55;
   }
   :global(.code-pre .code-text) {
-    white-space: pre;
-  }
-
-  /* Markdown rendered tweaks. */
-  :global(.markdown-body h1),
-  :global(.markdown-body h2),
-  :global(.markdown-body h3),
-  :global(.markdown-body h4) {
-    margin-top: 1em;
-    margin-bottom: 0.5em;
-    font-weight: 600;
-  }
-  :global(.markdown-body p) {
-    margin-bottom: 0.75em;
-  }
-  :global(.markdown-body pre) {
-    background: var(--muted);
-    padding: 0.75rem;
-    overflow-x: auto;
-    font-size: 0.875em;
-    margin-bottom: 0.75em;
-  }
-  :global(.markdown-body code) {
-    font-family: var(--font-mono, ui-monospace, monospace);
-    background: var(--muted);
-    padding: 0.1em 0.3em;
-    font-size: 0.875em;
-  }
-  :global(.markdown-body pre code) {
-    padding: 0;
-    background: transparent;
-  }
-  :global(.markdown-body ul),
-  :global(.markdown-body ol) {
-    margin-left: 1.5em;
-    margin-bottom: 0.75em;
-  }
-  :global(.markdown-body li) {
-    margin-bottom: 0.25em;
-  }
-  :global(.markdown-body a) {
-    color: var(--primary);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-  :global(.markdown-body blockquote) {
-    border-left: 3px solid var(--border);
-    padding-left: 1em;
-    color: var(--muted-foreground);
-    margin-bottom: 0.75em;
-  }
-  :global(.html-rendered) {
-    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* TOC dotted leaders. */

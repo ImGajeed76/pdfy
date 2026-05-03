@@ -31,11 +31,16 @@
     spacing = 0,
     orientation = "horizontal",
     variant = "default",
+    disallowDeselect = true,
+    onValueChange,
     ...restProps
   }: ToggleGroupPrimitive.RootProps &
     ToggleVariants & {
       spacing?: number;
       orientation?: "horizontal" | "vertical";
+      /** When true (default), clicking the active item is a no-op so the
+          group always has at least one selection. Set false to allow empty. */
+      disallowDeselect?: boolean;
     } = $props();
 
   setToggleGroupCtx({
@@ -52,6 +57,20 @@
       return orientation;
     },
   });
+
+  // Intercept value changes so we can drop empty/empty-array updates when
+  // disallowDeselect is on. We pass `value` one-way to the primitive (no
+  // bind:) so we own the state — otherwise the bind syncs the deselected
+  // value before our handler can reject it.
+  function handleValueChange(next: string | string[]): void {
+    if (disallowDeselect) {
+      const isEmpty = Array.isArray(next) ? next.length === 0 : next === "";
+      if (isEmpty) return;
+    }
+    value = next as typeof value;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (onValueChange as ((v: typeof next) => void) | undefined)?.(next as any);
+  }
 </script>
 
 <!--
@@ -59,7 +78,8 @@ Discriminated Unions + Destructing (required for bindable) do not
 get along, so we shut typescript up by casting `value` to `never`.
 -->
 <ToggleGroupPrimitive.Root
-  bind:value={value as never}
+  value={value as never}
+  onValueChange={handleValueChange as never}
   bind:ref
   {orientation}
   data-slot="toggle-group"

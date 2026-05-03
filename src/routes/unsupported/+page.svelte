@@ -19,7 +19,7 @@
 </svelte:head>
 
 <div class="bg-background text-foreground flex min-h-screen flex-col">
-  <header class="border-border/50 border-b">
+  <header class="border-foreground/15 border-b">
     <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 sm:px-8">
       <a href="/" class="flex items-center gap-2 text-base font-semibold tracking-tight">
         <Logo class="size-6" />
@@ -74,7 +74,7 @@
     </div>
   </main>
 
-  <footer class="border-border/60 border-t px-6 py-8">
+  <footer class="border-foreground/15 border-t px-6 py-8">
     <div class="text-muted-foreground mx-auto max-w-6xl text-center text-sm sm:text-left">
       <p>&copy; {new Date().getFullYear()} PDFy &middot; GPL v3.0</p>
     </div>

@@ -25,7 +25,6 @@
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.4",
-    "@types/markdown-it": "^14.1.2",
     "@types/wicg-file-system-access": "^2023.10.7",
     "bits-ui": "^2.18.1",
     "clsx": "^2.1.1",
@@ -50,12 +49,16 @@
     "vite": "^8.0.10"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.1",
+    "@codemirror/language": "^6.12.3",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.41.1",
     "@fontsource-variable/geist-mono": "^5.2.7",
-    "idb-keyval": "^6.2.2",
-    "katex": "^0.16.45",
-    "mammoth": "^1.12.0",
-    "markdown-it": "^14.1.0",
-    "markdown-it-katex": "^2.0.3",
+    "@lezer/highlight": "^1.2.3",
+    "@types/mustache": "^4.2.6",
+    "codemirror": "^6.0.2",
+    "idb": "^8.0.3",
+    "mustache": "^4.2.0",
     "pdfjs-dist": "^5.7.284",
     "shiki": "^4.0.2"
   }

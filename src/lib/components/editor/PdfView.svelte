@@ -99,4 +99,9 @@
     background: white;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
   }
+  /* Dark preview: invert the page so embedded PDFs blend with the dark sheet. */
+  :global(.preview-scroll[data-preview-theme="dark"] .pdf-page-wrap canvas) {
+    filter: invert(1) hue-rotate(180deg);
+    background: #161616;
+  }
 </style>

@@ -30,6 +30,7 @@
   const isFocused = $derived(editor.focusedFileId === entry.id);
 
   let nodeEl: HTMLElement | null = $state(null);
+  let pulsing = $state(false);
 
   // When this file becomes the focused one (e.g. via "Reveal in tree"),
   // scroll into view.
@@ -37,6 +38,18 @@
     if (isFocused && nodeEl) {
       nodeEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
+  });
+
+  // Reveal pulse: every reveal bumps revealPulseTick. When the bump targets
+  // this entry, flash a primary highlight for ~1.5s so the user can spot it.
+  $effect(() => {
+    void editor.revealPulseTick;
+    if (editor.revealPulseId !== entry.id) return;
+    pulsing = true;
+    const t = setTimeout(() => {
+      pulsing = false;
+    }, 1500);
+    return () => clearTimeout(t);
   });
 
   // How many times this file appears in the print index.
@@ -192,10 +205,6 @@
           <FileCode class="size-4" />
           Add code &amp; text only
         </ContextMenu.Item>
-        <ContextMenu.Separator />
-        <ContextMenu.Item onclick={() => editor.expandAll(entry.children)}>
-          Expand all under here
-        </ContextMenu.Item>
       </ContextMenu.Content>
     </ContextMenu.Root>
 
@@ -214,7 +223,7 @@
             {...props}
             class="hover:bg-muted/60 group flex w-full cursor-pointer items-center gap-1.5 px-1.5 py-1 text-left text-sm transition-colors select-none {isFocused
               ? 'bg-muted/80'
-              : ''}"
+              : ''} {pulsing ? 'reveal-pulse' : ''}"
             style="padding-left: {depth * 12 + 6}px"
             role="button"
             tabindex="0"
@@ -267,17 +276,32 @@
           <Plus class="size-4" />
           Add to plan
         </ContextMenu.Item>
-        <ContextMenu.Item
-          onclick={() => {
-            editor.focusedFileId = entry.id;
-            editor.treeAnchorFileId = entry.id;
-            editor.ensureContent(entry).catch(() => {});
-          }}
-        >
-          <File class="size-4" />
-          Preview only
-        </ContextMenu.Item>
       </ContextMenu.Content>
     </ContextMenu.Root>
   {/if}
 {/if}
+
+<style>
+  /* Reveal pulse: a quick double-flash of the primary tint so the user can
+     spot which node was just revealed in the tree. Uses :global because
+     this component recursively renders itself, and Svelte scopes styles
+     per file — the class needs to apply across the recursive instances. */
+  :global(.reveal-pulse) {
+    animation: reveal-pulse 1.5s ease-out;
+  }
+  @keyframes reveal-pulse {
+    0%,
+    100% {
+      background-color: transparent;
+    }
+    15%,
+    55% {
+      background-color: var(--primary);
+      color: var(--primary-foreground);
+    }
+    35%,
+    75% {
+      background-color: transparent;
+    }
+  }
+</style>
