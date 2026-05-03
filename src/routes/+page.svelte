@@ -1,49 +1,88 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { Button } from "$lib/components/ui/button";
-  import ArrowRight from "@lucide/svelte/icons/arrow-right";
-  import Brackets from "@lucide/svelte/icons/brackets";
-  import FileText from "@lucide/svelte/icons/file-text";
-  import Layers from "@lucide/svelte/icons/layers";
-  import Lock from "@lucide/svelte/icons/lock";
-  import Rocket from "@lucide/svelte/icons/rocket";
+  import Logo from "$lib/components/Logo.svelte";
   import Github from "$lib/components/icons/Github.svelte";
+  import { reveal } from "$lib/actions/reveal";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import Folder from "@lucide/svelte/icons/folder";
+  import ListChecks from "@lucide/svelte/icons/list-checks";
+  import Printer from "@lucide/svelte/icons/printer";
+  import Lock from "@lucide/svelte/icons/lock";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Code from "@lucide/svelte/icons/code";
+  import Search from "@lucide/svelte/icons/search";
 
-  const features = [
+  let stars = $state<number | null>(null);
+
+  onMount(async () => {
+    try {
+      const res = await fetch("https://api.github.com/repos/ImGajeed76/pdfy");
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.stargazers_count === "number") stars = data.stargazers_count;
+      }
+    } catch {
+      // GitHub API unreachable; just hide the count
+    }
+  });
+
+  function formatStars(n: number): string {
+    if (n < 1000) return String(n);
+    const k = Math.round((n / 1000) * 10) / 10;
+    return String(k).replace(/\.0$/, "") + "k";
+  }
+
+  // Linear-style bordered hover: each card's ::after gradient tracks the cursor.
+  // Updating per-card vars on every mouse move in the section means all cards
+  // light up simultaneously and the glow doesn't flicker between cards.
+  function handleCardMove(event: MouseEvent): void {
+    const container = event.currentTarget as HTMLElement;
+    for (const card of container.querySelectorAll<HTMLElement>(".trust-card")) {
+      const rect = card.getBoundingClientRect();
+      card.style.setProperty("--mouse-x", `${event.clientX - rect.left}px`);
+      card.style.setProperty("--mouse-y", `${event.clientY - rect.top}px`);
+    }
+  }
+
+  const steps = [
+    {
+      icon: Folder,
+      title: "Pick a folder",
+      description: "Choose your project from your computer.",
+    },
+    {
+      icon: ListChecks,
+      title: "Tick the files",
+      description: "Select what you want, tree included.",
+    },
+    {
+      icon: Printer,
+      title: "Print to PDF",
+      description: "One click, browser-native.",
+    },
+  ];
+
+  const trust = [
     {
       icon: Lock,
-      title: "Local & Secure Code to PDF",
-      description:
-        "Process files entirely in your browser. Your source code never leaves your machine, ensuring secure code to PDF conversion.",
+      title: "Local",
+      description: "Your files never leave your browser.",
     },
     {
-      icon: FileText,
-      title: "Text-Based & Searchable PDFs",
-      description:
-        "Generate PDFs with selectable text from your code, perfect for documentation and review. True text-based PDF output for all your source files.",
+      icon: Sparkles,
+      title: "Free",
+      description: "Forever. No signup.",
     },
     {
-      icon: Brackets,
-      title: "Syntax Highlighting for Code",
-      description:
-        "Beautifully highlighted code in your PDFs for numerous languages, powered by highlight.js, making your source to PDF output highly readable.",
+      icon: Code,
+      title: "Open source",
+      description: "Inspect the code on GitHub.",
     },
     {
-      icon: Layers,
-      title: "Batch Convert Multiple Files",
-      description:
-        "Easily convert multiple code files or entire project folders to a single, organized PDF. Streamline your multiple files to PDF workflow.",
-    },
-    {
-      icon: Rocket,
-      title: "Simple & Fast PDF Generation",
-      description:
-        "Intuitive interface. Select your folder, pick multiple files, and print code to PDF – it’s that easy and quick.",
-    },
-    {
-      icon: Github,
-      title: "Open Source & Free",
-      description:
-        "PDFy is completely free and open source. Contribute on GitHub and help improve the tool for everyone.",
+      icon: Search,
+      title: "Searchable",
+      description: "Real text, not screenshots.",
     },
   ];
 </script>
@@ -61,108 +100,163 @@
   <link rel="canonical" href="https://pdfy.oseifert.ch/" />
 </svelte:head>
 
-<div
-  class="flex min-h-screen flex-col bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100"
->
-  <!-- Header -->
-  <header class="px-4 py-4 sm:px-6 lg:px-8">
-    <nav class="flex items-center justify-between">
-      <a href="/" class="flex items-center gap-2 text-xl font-semibold">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-labelledby="pdfyLogoTitle"
-        >
-          <title id="pdfyLogoTitle">PDFy Logo - Code to PDF Tool</title>
-          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-          <line x1="10" y1="9" x2="8" y2="9"></line>
-        </svg>
+<div class="bg-background text-foreground flex min-h-screen flex-col">
+  <header
+    class="border-border/50 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-30 border-b backdrop-blur-md"
+  >
+    <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 sm:px-8">
+      <a href="/" class="flex items-center gap-2 text-base font-semibold tracking-tight">
+        <Logo class="size-6" />
         <span>PDFy</span>
       </a>
-      <Button
-        href="/tool"
-        variant="outline"
-        size="sm"
-        class="border-slate-400 text-slate-100 hover:bg-slate-700 hover:text-white"
-      >
-        Go to App
-        <ArrowRight class="ml-2 h-4 w-4" />
-      </Button>
+      <div class="flex items-center gap-2">
+        <Button
+          href="https://github.com/ImGajeed76/pdfy"
+          variant="ghost"
+          size="sm"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="gap-2"
+          aria-label="GitHub repository"
+        >
+          <Github class="size-4" />
+          {#if stars !== null}
+            <span class="text-sm leading-none tabular-nums">{formatStars(stars)}</span>
+          {/if}
+        </Button>
+        <Button href="/tool" size="sm" class="group gap-2">
+          Open App
+          <ArrowRight class="size-4 transition-transform group-hover:translate-x-0.5" />
+        </Button>
+      </div>
     </nav>
   </header>
 
-  <!-- Hero Section -->
   <main class="flex-grow">
-    <section class="px-4 py-16 text-center sm:py-24">
-      <div class="mx-auto max-w-3xl">
-        <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
-          <span class="block xl:inline">PDFy: Instant Code to PDF</span>
-          <span class="block text-sky-400 xl:inline">Secure & Searchable.</span>
-        </h1>
-        <p class="mx-auto mt-6 max-w-xl text-lg text-slate-300 sm:text-xl">
-          PDFy transforms your <strong class="text-sky-300">source code</strong> and project files
-          into
-          <strong class="text-sky-300">clean, searchable, text-based PDFs</strong>. Easily
-          <strong class="text-sky-300">convert multiple files to PDF</strong> with syntax highlighting
-          — all securely in your browser.
-        </p>
-        <div class="mt-10 flex justify-center gap-4">
-          <Button
-            href="/tool"
-            size="lg"
-            class="bg-sky-500 font-semibold text-white hover:bg-sky-600"
+    <!-- HERO -->
+    <section class="relative overflow-hidden px-6 pt-24 pb-32 sm:pt-32 sm:pb-40">
+      <!-- Background grid pattern -->
+      <div
+        aria-hidden="true"
+        class="text-foreground absolute inset-0 -z-20 opacity-[0.05]"
+        style="background-image: linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px); background-size: 56px 56px;"
+      ></div>
+      <!-- Background fade so grid doesn't reach the edges -->
+      <div
+        aria-hidden="true"
+        class="from-background pointer-events-none absolute inset-0 -z-10 bg-radial-[ellipse_at_center] from-30% to-transparent"
+      ></div>
+      <!-- Primary glow -->
+      <div
+        aria-hidden="true"
+        class="bg-primary pointer-events-none absolute -top-32 left-1/2 -z-10 h-[520px] w-[820px] -translate-x-1/2 rounded-full opacity-15 blur-[140px]"
+      ></div>
+
+      <div
+        class="relative z-10 mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.2fr_1fr] lg:gap-16"
+      >
+        <!-- Left: text -->
+        <div class="text-left">
+          <h1
+            class="text-5xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-6xl md:text-7xl"
           >
-            Launch PDFy Now
-            <Rocket class="ml-2 h-5 w-5" />
-          </Button>
-          <Button
-            href="https://github.com/ImGajeed76/pdfy"
-            target="_blank"
-            rel="noopener noreferrer"
-            variant="outline"
-            size="lg"
-            class="border-slate-400 text-slate-100 hover:bg-slate-700 hover:text-white"
-          >
-            View on GitHub
-          </Button>
+            Folder in.<br /><span class="text-primary">Searchable</span> PDF out.
+          </h1>
+
+          <p class="text-muted-foreground mt-7 max-w-xl text-lg sm:text-xl">
+            Pick a folder, click print. Everything happens in your browser.
+          </p>
+
+          <div class="mt-10 flex flex-wrap items-center gap-3">
+            <Button href="/tool" size="lg" class="group h-12 gap-2 px-6 text-base">
+              Open PDFy
+              <ArrowRight class="size-4 transition-transform group-hover:translate-x-1" />
+            </Button>
+            <Button
+              href="https://github.com/ImGajeed76/pdfy"
+              variant="ghost"
+              size="lg"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="h-12 gap-2 px-5 text-base"
+            >
+              <Github class="size-4" />
+              GitHub
+            </Button>
+          </div>
+
+          <p class="text-muted-foreground/80 mt-8 font-mono text-xs tracking-wide">
+            No uploads &nbsp;·&nbsp; No installs &nbsp;·&nbsp; No signup
+          </p>
         </div>
-        <p class="mt-6 text-sm text-slate-400">
-          Free, open-source, and respects your privacy. Your go-to for reliable <strong
-            class="text-sky-500">code to PDF</strong
-          > conversion.
-        </p>
+
+        <!-- Right: fox -->
+        <div class="hidden lg:flex lg:justify-end">
+          <img
+            src="/foxes/with-paper.png"
+            alt=""
+            aria-hidden="true"
+            class="pointer-events-none size-72 -rotate-6 select-none xl:size-80"
+          />
+        </div>
       </div>
     </section>
 
-    <!-- Features Section -->
-    <section class="bg-slate-800/50 py-16 sm:py-20">
-      <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        <h2 class="mb-12 text-center text-3xl font-bold text-sky-400">
-          Why PDFy is Your Best Choice for Code PDFs
-        </h2>
-        <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:gap-12">
-          {#each features as feature, _index (feature.title)}
-            <div
-              class="flex items-start space-x-4 rounded-xl bg-slate-700/40 p-6 shadow-lg transition-shadow duration-300 hover:shadow-sky-500/20"
-            >
-              <div class="flex-shrink-0">
-                <svelte:component this={feature.icon} class="h-8 w-8 text-sky-400" />
+    <!-- HOW IT WORKS -->
+    <section class="border-border/60 border-t px-6 py-24 sm:py-32" use:reveal>
+      <div class="mx-auto max-w-5xl">
+        <div class="mb-14 flex flex-col items-center text-center">
+          <span class="text-muted-foreground mb-3 font-mono text-xs tracking-wider uppercase">
+            How it works
+          </span>
+          <h2 class="text-3xl font-semibold tracking-tight sm:text-4xl">Pick. Tick. Print.</h2>
+        </div>
+        <div class="bg-border/60 grid grid-cols-1 gap-px sm:grid-cols-3">
+          {#each steps as step, i (step.title)}
+            {@const Icon = step.icon}
+            <div class="bg-background group flex flex-col gap-4 p-8">
+              <div class="flex items-center justify-between">
+                <span class="text-muted-foreground/70 font-mono text-sm tabular-nums">
+                  0{i + 1}
+                </span>
+                <Icon class="text-primary size-5 transition-transform group-hover:scale-110" />
               </div>
-              <div>
-                <h3 class="text-xl font-semibold text-slate-100">
-                  {feature.title}
-                </h3>
-                <p class="mt-1 text-slate-300">{feature.description}</p>
+              <h3 class="text-xl font-medium">{step.title}</h3>
+              <p class="text-muted-foreground">{step.description}</p>
+            </div>
+          {/each}
+        </div>
+      </div>
+    </section>
+
+    <!-- TRUST -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <section
+      class="trust-section bg-muted/30 border-border/60 border-t px-6 py-24 sm:py-32"
+      onmousemove={handleCardMove}
+      use:reveal
+    >
+      <div class="mx-auto max-w-4xl">
+        <div class="mb-14 flex flex-col items-center text-center">
+          <span class="text-muted-foreground mb-3 font-mono text-xs tracking-wider uppercase">
+            Why pdfy
+          </span>
+          <h2 class="text-3xl font-semibold tracking-tight sm:text-4xl">What you get.</h2>
+        </div>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {#each trust as item (item.title)}
+            {@const Icon = item.icon}
+            <div class="trust-card">
+              <div class="trust-card-inner">
+                <div
+                  class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center"
+                >
+                  <Icon class="size-5" />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <h3 class="text-lg font-medium">{item.title}</h3>
+                  <p class="text-muted-foreground text-sm leading-relaxed">{item.description}</p>
+                </div>
               </div>
             </div>
           {/each}
@@ -170,48 +264,131 @@
       </div>
     </section>
 
-    <!-- Call to Action Bottom -->
-    <section class="px-4 py-16 text-center sm:py-24">
-      <div class="mx-auto max-w-2xl">
-        <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">
-          Ready to Create Perfect Code PDFs?
-        </h2>
-        <p class="mt-4 text-lg text-slate-300">
-          Give PDFy a try – it's quick, easy, and the ideal solution for converting <strong
-            class="text-sky-300">multiple source files to PDF</strong
-          > entirely on your machine.
-        </p>
-        <div class="mt-8">
-          <Button
-            href="/tool"
-            size="lg"
-            class="bg-sky-500 font-semibold text-white hover:bg-sky-600"
-          >
-            Go to the PDFy App
-            <ArrowRight class="ml-2 h-5 w-5" />
+    <!-- BOTTOM CTA -->
+    <section
+      class="border-border/60 relative overflow-hidden border-t px-6 py-28 sm:py-36"
+      use:reveal
+    >
+      <div
+        aria-hidden="true"
+        class="bg-primary pointer-events-none absolute bottom-0 left-1/2 -z-10 h-[300px] w-[600px] -translate-x-1/2 translate-y-1/2 rounded-full opacity-15 blur-[120px]"
+      ></div>
+
+      <div class="mx-auto flex max-w-3xl flex-col items-center text-center">
+        <h2 class="text-3xl font-semibold tracking-tight sm:text-4xl">Ready when you are.</h2>
+        <p class="text-muted-foreground mt-3">No setup. Just a folder and a click.</p>
+
+        <!-- Trotting fox + button: fox runs in toward the button on hover -->
+        <div class="mt-10 flex items-center justify-center gap-1">
+          <img
+            src="/foxes/trotting.png"
+            alt=""
+            aria-hidden="true"
+            class="hero-cta-fox size-20 -scale-x-100 select-none sm:size-24"
+          />
+          <Button href="/tool" size="lg" class="group h-12 gap-2 px-6 text-base">
+            Open PDFy
+            <ArrowRight class="size-4 transition-transform group-hover:translate-x-1" />
           </Button>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- Footer -->
-  <footer class="border-t border-slate-700 py-8 text-center">
-    <p class="text-slate-400">
-      PDFy &copy; {new Date().getFullYear()}. Your essential tool for
-      <strong class="text-sky-500">code to PDF</strong> and
-      <strong class="text-sky-500">source to PDF</strong> tasks.
-    </p>
-    <p class="mt-1 text-sm text-slate-500">
-      Licensed under GNU GPL v3.0.
-      <a
-        href="https://github.com/ImGajeed76/pdfy"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="text-sky-400 underline hover:text-sky-300"
-      >
-        View Source Code
-      </a>
-    </p>
+  <!-- FOOTER -->
+  <footer class="border-border/60 relative border-t px-6 py-8">
+    <div
+      class="text-muted-foreground mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 text-sm sm:flex-row"
+    >
+      <div class="flex items-center gap-3">
+        <img
+          src="/foxes/sleeping.png"
+          alt=""
+          aria-hidden="true"
+          class="pointer-events-none size-16 shrink-0 select-none sm:size-20"
+          style="filter: saturate(1.1);"
+        />
+        <p>&copy; {new Date().getFullYear()} PDFy &middot; GPL v3.0</p>
+      </div>
+      <div class="flex items-center gap-5">
+        <a
+          href="https://github.com/ImGajeed76/pdfy"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-foreground transition-colors"
+        >
+          GitHub
+        </a>
+        <a
+          href="https://oseifert.ch"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-foreground transition-colors"
+        >
+          Oliver Seifert
+        </a>
+      </div>
+    </div>
   </footer>
 </div>
+
+<style>
+  /* Trotting fox subtly trots toward the CTA button when the user hovers
+     anywhere in the bottom CTA section. Tiny detail, signals momentum. */
+  .hero-cta-fox {
+    transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  section:hover .hero-cta-fox {
+    transform: translateX(6px);
+  }
+
+  /* Linear-style bordered hover effect for the trust cards.
+   *
+   * The card has a light background (= visible "border" color). A content box
+   * inside with `margin: 1px` covers everything except a 1px ring, showing the
+   * parent's background through that gap. A pseudo-element sits behind the
+   * content with a mouse-tracking radial gradient — only visible through the
+   * ring, so the effect is purely on the border.
+   *
+   * The :hover trigger is on the section, not on each card, so the glow doesn't
+   * flicker as the cursor crosses the gap between cards. */
+
+  .trust-card {
+    position: relative;
+    background: var(--border);
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .trust-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      280px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      color-mix(in oklch, var(--primary) 75%, transparent),
+      transparent 45%
+    );
+    opacity: 0;
+    transition: opacity 500ms ease-out;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .trust-section:hover .trust-card::after {
+    opacity: 1;
+  }
+
+  .trust-card-inner {
+    position: relative;
+    z-index: 2;
+    margin: 1px;
+    min-height: calc(100% - 2px);
+    background: var(--card);
+    padding: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    box-sizing: border-box;
+  }
+</style>
