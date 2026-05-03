@@ -33,7 +33,7 @@
   <main class="flex flex-grow items-center justify-center px-6 py-16 sm:py-24">
     <div class="mx-auto flex max-w-2xl flex-col items-center text-center">
       <img
-        src="/foxes/funeral.png"
+        src="/foxes/funeral-768.webp"
         alt=""
         aria-hidden="true"
         class="pointer-events-none w-72 max-w-full select-none sm:w-96"

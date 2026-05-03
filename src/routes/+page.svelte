@@ -12,6 +12,7 @@
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Code from "@lucide/svelte/icons/code";
   import Search from "@lucide/svelte/icons/search";
+  import { SITE_URL, SITE_NAME, SITE_AUTHOR, SITE_AUTHOR_URL, SITE_REPO } from "$lib/site";
 
   let stars = $state<number | null>(null);
 
@@ -85,19 +86,40 @@
       description: "Real text, not screenshots.",
     },
   ];
+
+  // SoftwareApplication schema, rendered only on the home page so search
+  // engines associate it with the site root rather than every URL.
+  const softwareJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: SITE_NAME,
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Web Browser",
+    url: `${SITE_URL}/`,
+    description:
+      "PDFy turns a folder of source code into a single searchable PDF with syntax highlighting. Runs in the browser, files never leave your machine.",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    creator: { "@type": "Person", name: SITE_AUTHOR, url: SITE_AUTHOR_URL },
+    sameAs: [SITE_REPO],
+  };
+  /* eslint-disable no-useless-escape */
+  const softwareJsonLdHtml = `<script type="application/ld+json">${JSON.stringify(softwareJsonLd)}<\/script>`;
+  /* eslint-enable no-useless-escape */
 </script>
 
 <svelte:head>
-  <title>PDFy: Code to PDF Converter - Secure, Searchable & Local</title>
+  <title>PDFy, code to PDF in the browser</title>
   <meta
     name="description"
-    content="Convert code to PDF effortlessly with PDFy. Create text-based, searchable PDFs with syntax highlighting from multiple source files, right in your browser. Secure, local, and free."
+    content="PDFy turns a folder of source code into a single searchable PDF with syntax highlighting. Runs entirely in your browser. No uploads, no signup."
   />
+  <meta property="og:title" content="PDFy, code to PDF in the browser" />
   <meta
-    name="keywords"
-    content="pdfy, code to pdf, source to pdf, multiple files to pdf, text-based pdf, searchable pdf, syntax highlighting, developer tool, sveltekit, local processing, print code, project documentation, pdfy oseifert"
+    property="og:description"
+    content="Pick a folder, click print. Your code never leaves the browser."
   />
-  <link rel="canonical" href="https://pdfy.oseifert.ch/" />
+  <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+  {@html softwareJsonLdHtml}
 </svelte:head>
 
 <div class="bg-background text-foreground flex min-h-screen flex-col">
@@ -117,14 +139,16 @@
           target="_blank"
           rel="noopener noreferrer"
           class="gap-2"
-          aria-label="GitHub repository"
+          aria-label={stars !== null
+            ? `GitHub repository, ${formatStars(stars)} stars`
+            : "GitHub repository"}
         >
           <Github class="size-4" />
           {#if stars !== null}
             <span class="text-sm leading-none tabular-nums">{formatStars(stars)}</span>
           {/if}
         </Button>
-        <Button href="/tool" size="sm" class="group gap-2">
+        <Button href="/editor" size="sm" class="group gap-2">
           Open App
           <ArrowRight class="size-4 transition-transform group-hover:translate-x-0.5" />
         </Button>
@@ -168,7 +192,7 @@
           </p>
 
           <div class="mt-10 flex flex-wrap items-center gap-3">
-            <Button href="/tool" size="lg" class="group h-12 gap-2 px-6 text-base">
+            <Button href="/editor" size="lg" class="group h-12 gap-2 px-6 text-base">
               Open PDFy
               <ArrowRight class="size-4 transition-transform group-hover:translate-x-1" />
             </Button>
@@ -193,7 +217,7 @@
         <!-- Right: fox -->
         <div class="hidden lg:flex lg:justify-end">
           <img
-            src="/foxes/with-paper.png"
+            src="/foxes/with-paper-640.webp"
             alt=""
             aria-hidden="true"
             class="pointer-events-none size-72 -rotate-6 select-none xl:size-80"
@@ -202,8 +226,10 @@
       </div>
     </section>
 
+    <hr class="border-foreground/15 mx-auto w-3/5" aria-hidden="true" />
+
     <!-- HOW IT WORKS -->
-    <section class="border-foreground/15 border-t px-6 py-24 sm:py-32" use:reveal>
+    <section class="px-6 py-24 sm:py-32" use:reveal>
       <div class="mx-auto max-w-5xl">
         <div class="mb-14 flex flex-col items-center text-center">
           <span class="text-muted-foreground mb-3 font-mono text-xs tracking-wider uppercase">
@@ -229,13 +255,11 @@
       </div>
     </section>
 
+    <hr class="border-foreground/15 mx-auto w-3/5" aria-hidden="true" />
+
     <!-- TRUST -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <section
-      class="trust-section bg-muted/30 border-foreground/15 border-t px-6 py-24 sm:py-32"
-      onmousemove={handleCardMove}
-      use:reveal
-    >
+    <section class="trust-section px-6 py-24 sm:py-32" onmousemove={handleCardMove} use:reveal>
       <div class="mx-auto max-w-4xl">
         <div class="mb-14 flex flex-col items-center text-center">
           <span class="text-muted-foreground mb-3 font-mono text-xs tracking-wider uppercase">
@@ -264,11 +288,10 @@
       </div>
     </section>
 
+    <hr class="border-foreground/15 mx-auto w-3/5" aria-hidden="true" />
+
     <!-- BOTTOM CTA -->
-    <section
-      class="border-foreground/15 relative overflow-hidden border-t px-6 py-28 sm:py-36"
-      use:reveal
-    >
+    <section class="relative overflow-hidden px-6 py-28 sm:py-36" use:reveal>
       <div
         aria-hidden="true"
         class="bg-primary pointer-events-none absolute bottom-0 left-1/2 -z-10 h-[300px] w-[600px] -translate-x-1/2 translate-y-1/2 rounded-full opacity-15 blur-[120px]"
@@ -281,12 +304,12 @@
         <!-- Trotting fox + button: fox runs in toward the button on hover -->
         <div class="mt-10 flex items-center justify-center gap-1">
           <img
-            src="/foxes/trotting.png"
+            src="/foxes/trotting-192.webp"
             alt=""
             aria-hidden="true"
             class="hero-cta-fox size-20 -scale-x-100 select-none sm:size-24"
           />
-          <Button href="/tool" size="lg" class="group h-12 gap-2 px-6 text-base">
+          <Button href="/editor" size="lg" class="group h-12 gap-2 px-6 text-base">
             Open PDFy
             <ArrowRight class="size-4 transition-transform group-hover:translate-x-1" />
           </Button>
@@ -295,14 +318,16 @@
     </section>
   </main>
 
+  <hr class="border-foreground/15 mx-auto w-3/5" aria-hidden="true" />
+
   <!-- FOOTER -->
-  <footer class="border-foreground/15 relative border-t px-6 py-8">
+  <footer class="relative px-6 py-8">
     <div
       class="text-muted-foreground mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 text-sm sm:flex-row"
     >
       <div class="flex items-center gap-3">
         <img
-          src="/foxes/sleeping.png"
+          src="/foxes/sleeping-160.webp"
           alt=""
           aria-hidden="true"
           class="pointer-events-none size-16 shrink-0 select-none sm:size-20"
@@ -310,9 +335,11 @@
         />
         <p>&copy; {new Date().getFullYear()} PDFy &middot; GPL v3.0</p>
       </div>
-      <div class="flex items-center gap-5">
+      <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+        <a href="/faq" class="hover:text-foreground transition-colors">FAQ</a>
+        <a href="/privacy" class="hover:text-foreground transition-colors">Privacy</a>
         <a
-          href="https://github.com/ImGajeed76/pdfy"
+          href={SITE_REPO}
           target="_blank"
           rel="noopener noreferrer"
           class="hover:text-foreground transition-colors"
@@ -320,12 +347,12 @@
           GitHub
         </a>
         <a
-          href="https://oseifert.ch"
+          href={SITE_AUTHOR_URL}
           target="_blank"
           rel="noopener noreferrer"
           class="hover:text-foreground transition-colors"
         >
-          Oliver Seifert
+          {SITE_AUTHOR}
         </a>
       </div>
     </div>

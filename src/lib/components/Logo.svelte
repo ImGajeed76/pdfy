@@ -5,4 +5,10 @@
   let { class: className, ...rest }: HTMLImgAttributes = $props();
 </script>
 
-<img src="/favicon.svg" alt="PDFy" class={cn("size-6 select-none", className)} {...rest} />
+<img
+  src="/favicon-96x96.png"
+  alt=""
+  aria-hidden="true"
+  class={cn("size-6 select-none", className)}
+  {...rest}
+/>

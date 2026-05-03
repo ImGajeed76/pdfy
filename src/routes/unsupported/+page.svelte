@@ -31,7 +31,7 @@
   <main class="flex flex-grow items-center justify-center px-6 py-16 sm:py-24">
     <div class="mx-auto flex max-w-2xl flex-col items-center text-center">
       <img
-        src="/foxes/with-paper-sad.png"
+        src="/foxes/with-paper-sad-448.webp"
         alt=""
         aria-hidden="true"
         class="pointer-events-none size-48 select-none sm:size-56"

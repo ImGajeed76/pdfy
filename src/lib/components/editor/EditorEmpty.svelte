@@ -91,7 +91,7 @@
       ></div>
 
       <img
-        src="/foxes/with-paper.png"
+        src="/foxes/with-paper-384.webp"
         alt=""
         aria-hidden="true"
         class="pointer-events-none mb-6 size-36 select-none sm:size-48"
