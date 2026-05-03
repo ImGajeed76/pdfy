@@ -8,8 +8,72 @@
   import List from "@lucide/svelte/icons/list";
   import Plus from "@lucide/svelte/icons/plus";
   import { findFileById } from "$lib/editor/util";
+  import { toast } from "svelte-sonner";
 
   let { onJumpTo }: { onJumpTo: (id: string) => void } = $props();
+
+  /**
+   * Handle drag from the OS file picker. Modern File System Access API
+   * exposes getAsFileSystemHandle() on each DataTransferItem. This lets the
+   * user drop a file/folder from their file manager and get a real handle
+   * (not just a File object) so the rest of the editor flow works.
+   */
+  async function handleOsDrop(items: DataTransferItemList, dropIndex: number): Promise<void> {
+    const fileEntries: Parameters<typeof editor.addFiles>[0] = [];
+    let folderCount = 0;
+    for (const item of Array.from(items)) {
+      if (item.kind !== "file") continue;
+      const getter = (
+        item as DataTransferItem & {
+          getAsFileSystemHandle?: () => Promise<FileSystemHandle | null>;
+        }
+      ).getAsFileSystemHandle;
+      if (!getter) continue;
+      const handle = await getter.call(item);
+      if (!handle) continue;
+      if (handle.kind === "file") {
+        const fh = handle as FileSystemFileHandle;
+        fileEntries.push({
+          id: `__os__/${fh.name}`,
+          name: fh.name,
+          kind: "file",
+          path: fh.name,
+          handle: fh,
+        });
+      } else if (handle.kind === "directory") {
+        folderCount++;
+        const dh = handle as FileSystemDirectoryHandle;
+        await collectFromDir(dh, dh.name + "/", fileEntries);
+      }
+    }
+    if (fileEntries.length > 0) {
+      editor.addFiles(fileEntries, { at: dropIndex });
+      toast.success(
+        `Added ${fileEntries.length} ${fileEntries.length === 1 ? "file" : "files"}` +
+          (folderCount > 0 ? ` from ${folderCount} folder${folderCount > 1 ? "s" : ""}` : ""),
+      );
+    }
+  }
+
+  async function collectFromDir(
+    dh: FileSystemDirectoryHandle,
+    prefix: string,
+    out: Parameters<typeof editor.addFiles>[0],
+  ): Promise<void> {
+    for await (const handle of dh.values()) {
+      if (handle.kind === "file") {
+        out.push({
+          id: `__os__/${prefix}${handle.name}`,
+          name: handle.name,
+          kind: "file",
+          path: prefix + handle.name,
+          handle: handle as FileSystemFileHandle,
+        });
+      } else if (handle.kind === "directory") {
+        await collectFromDir(handle as FileSystemDirectoryHandle, `${prefix}${handle.name}/`, out);
+      }
+    }
+  }
 
   let dragOverIndex = $state<number | null>(null);
 
@@ -30,6 +94,18 @@
     e.preventDefault();
     dragOverIndex = null;
     if (!e.dataTransfer) return;
+
+    // OS drag (file manager → browser): items contain real OS files.
+    // Detect by checking if any DataTransferItem has kind "file" but no
+    // pdfy-specific data type.
+    const hasInternalPayload =
+      e.dataTransfer.types.includes("application/x-pdfy-index-entry") ||
+      e.dataTransfer.types.includes("application/x-pdfy-file") ||
+      e.dataTransfer.types.includes("application/x-pdfy-folder");
+    if (!hasInternalPayload && e.dataTransfer.items.length > 0) {
+      void handleOsDrop(e.dataTransfer.items, dropIndex);
+      return;
+    }
 
     // Reorder existing index entry.
     const indexEntryRaw = e.dataTransfer.getData("application/x-pdfy-index-entry");

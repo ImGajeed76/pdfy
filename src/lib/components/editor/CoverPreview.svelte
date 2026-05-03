@@ -27,6 +27,7 @@
 </script>
 
 <section
+  id={`entry-${entry.id}`}
   class="preview-section cover-page bg-card border-border/60 mb-4 border print:m-0 print:break-after-page print:border-0"
   data-entry-id={entry.id}
 >

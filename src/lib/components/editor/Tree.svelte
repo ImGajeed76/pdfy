@@ -5,6 +5,7 @@
   import { editor } from "$lib/editor/state.svelte";
   import { smartAutoSelect } from "$lib/editor/smart-select";
   import { determineFileDisplayProperties } from "$lib/fileSystem";
+  import { toast } from "svelte-sonner";
   import TreeNode from "./TreeNode.svelte";
   import Search from "@lucide/svelte/icons/search";
   import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
@@ -29,6 +30,7 @@
   function addAll(): void {
     const all = flattenAllFiles().sort((a, b) => a.path.localeCompare(b.path));
     editor.addFiles(all);
+    toast.success(`Added ${all.length} ${all.length === 1 ? "file" : "files"} to plan`);
   }
 
   function addAllCode(): void {
@@ -38,12 +40,14 @@
     });
     all.sort((a, b) => a.path.localeCompare(b.path));
     editor.addFiles(all);
+    toast.success(`Added ${all.length} code/text ${all.length === 1 ? "file" : "files"} to plan`);
   }
 
   function applySmart(): void {
     if (!editor.tree) return;
     const ordered = smartAutoSelect(editor.tree);
     editor.addFiles(ordered);
+    toast.success(`Smart-added ${ordered.length} ${ordered.length === 1 ? "file" : "files"}`);
   }
 
   let totalFileCount = $derived(flattenAllFiles().length);

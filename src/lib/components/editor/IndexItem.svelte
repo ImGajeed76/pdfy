@@ -16,6 +16,7 @@
   import LayoutTemplate from "@lucide/svelte/icons/layout-template";
   import List from "@lucide/svelte/icons/list";
   import Edit3 from "@lucide/svelte/icons/edit-3";
+  import FolderOpen from "@lucide/svelte/icons/folder-open";
   import { onMount } from "svelte";
 
   let {
@@ -207,6 +208,10 @@
       Rename
     </ContextMenu.Item>
     {#if entry.kind === "file"}
+      <ContextMenu.Item onclick={() => editor.revealInTree(entry.source.id)}>
+        <FolderOpen class="size-4" />
+        Reveal in tree
+      </ContextMenu.Item>
       <ContextMenu.Item onclick={handleDuplicate}>
         <Copy class="size-4" />
         Duplicate

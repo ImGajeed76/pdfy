@@ -76,9 +76,11 @@
         @bottom-right {
           content: counter(page) " / " counter(pages);
           font-size: 9pt;
-          color: #555;
+          color: #888;
+          font-family: "Geist Variable", system-ui, sans-serif;
         }
       }
+      html,
       body {
         background: white !important;
         color: black !important;
@@ -89,17 +91,48 @@
       .print\:block {
         display: block !important;
       }
-      .preview-section {
-        break-inside: avoid-page;
-        page-break-inside: avoid;
-      }
+      /* Each preview section starts on a new page in print, except the first.  */
       .preview-section + .preview-section {
         break-before: page;
         page-break-before: always;
       }
+      .preview-section {
+        margin: 0 !important;
+        border: none !important;
+        background: transparent !important;
+      }
+      .preview-section header {
+        position: static !important;
+        background: transparent !important;
+        backdrop-filter: none !important;
+        border: none !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        padding-bottom: 0.5cm !important;
+        border-bottom: 1px solid #ddd !important;
+        margin-bottom: 0.4cm !important;
+      }
+      .preview-section .preview-body {
+        padding: 0 !important;
+      }
       .code-pre {
         white-space: pre-wrap !important;
-        word-break: break-all !important;
+        word-break: break-word !important;
+        background: transparent !important;
+        color: #111 !important;
+      }
+      .cover-page {
+        break-after: page;
+        page-break-after: always;
+      }
+      .cover-body {
+        min-height: calc(297mm - 3cm) !important;
+        justify-content: center !important;
+      }
+      /* Hide UI chrome on cover/toc when printed */
+      .preview-section header.print\:hidden,
+      .preview-section header[class*="print:hidden"] {
+        display: none !important;
       }
     }
   </style>
@@ -219,5 +252,12 @@
   }
   :global(.html-rendered) {
     overflow: auto;
+  }
+
+  /* TOC dotted leaders. */
+  :global(.toc-row .toc-leaders) {
+    border-bottom: 1px dotted var(--border);
+    align-self: end;
+    margin-bottom: 0.4em;
   }
 </style>

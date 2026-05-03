@@ -108,6 +108,7 @@
 </script>
 
 <section
+  id={`entry-${entry.id}`}
   class="preview-section bg-card border-border/60 mb-4 border print:m-0 print:break-after-page print:border-0"
   data-entry-id={entry.id}
 >
@@ -119,7 +120,7 @@
       {String(order + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
     </span>
     <div class="min-w-0 flex-1">
-      <div class="text-foreground truncate font-medium">{title}</div>
+      <h2 class="text-foreground truncate text-base font-semibold">{title}</h2>
       {#if showPath && entry.source.path !== title}
         <div class="text-muted-foreground/70 truncate font-mono text-[11px]">
           {entry.source.path}

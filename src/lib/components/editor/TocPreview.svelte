@@ -10,7 +10,8 @@
 </script>
 
 <section
-  class="preview-section bg-card border-border/60 mb-4 border print:m-0 print:break-after-page print:border-0"
+  id={`entry-${entry.id}`}
+  class="preview-section toc-page bg-card border-border/60 mb-4 border print:m-0 print:break-after-page print:border-0"
   data-entry-id={entry.id}
 >
   <header class="border-border/60 flex items-center gap-2 border-b px-3 py-2 text-sm print:hidden">
@@ -31,21 +32,25 @@
     <h2 class="mb-6 text-2xl font-semibold tracking-tight">{entry.title}</h2>
     {#if entries.length === 0}
       <p class="text-muted-foreground text-sm italic">
-        No files in plan yet — add some to populate the table of contents.
+        No files in plan yet, add some to populate the table of contents.
       </p>
     {:else}
-      <ul class="text-foreground space-y-1 text-sm">
+      <ul class="text-foreground space-y-2 text-sm">
         {#each entries as e, i (e.id)}
-          <li class="flex items-baseline gap-3">
-            <span class="text-muted-foreground/70 font-mono text-xs tabular-nums">
+          <li class="toc-row flex items-baseline gap-2">
+            <span class="text-muted-foreground/70 w-6 shrink-0 font-mono text-xs tabular-nums">
               {String(i + 1).padStart(2, "0")}
             </span>
-            <span class="flex-1 truncate">
+            <a
+              href={`#entry-${e.id}`}
+              class="text-foreground hover:text-primary truncate font-medium underline-offset-2 hover:underline print:no-underline"
+            >
               {e.customTitle || e.source.name}
+            </a>
+            <span class="toc-leaders flex-1"></span>
+            <span class="text-muted-foreground/70 font-mono text-[11px]">
+              {e.source.path}
             </span>
-            {#if e.source.path !== (e.customTitle || e.source.name)}
-              <span class="text-muted-foreground/60 font-mono text-[11px]">{e.source.path}</span>
-            {/if}
           </li>
         {/each}
       </ul>

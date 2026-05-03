@@ -28,6 +28,16 @@
   const isExpanded = $derived(editor.expandedFolders.has(entry.id));
   const isFocused = $derived(editor.focusedFileId === entry.id);
 
+  let nodeEl: HTMLElement | null = $state(null);
+
+  // When this file becomes the focused one (e.g. via "Reveal in tree"),
+  // scroll into view.
+  $effect(() => {
+    if (isFocused && nodeEl) {
+      nodeEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  });
+
   // How many times this file appears in the print index.
   const addedCount = $derived(
     entry.kind === "file" ? editor.fileEntries.filter((e) => e.source.id === entry.id).length : 0,
@@ -189,6 +199,7 @@
       <ContextMenu.Trigger>
         {#snippet child({ props })}
           <div
+            bind:this={nodeEl}
             {...props}
             class="hover:bg-muted/60 group flex w-full cursor-pointer items-center gap-1.5 px-1.5 py-1 text-left text-sm transition-colors select-none {isFocused
               ? 'bg-muted/80'

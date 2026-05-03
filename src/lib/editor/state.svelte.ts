@@ -150,6 +150,7 @@ class EditorState {
       // Re-link saved index entries to the FRESH tree's source objects so
       // counts/badges line up. Saved entries' ids match by path, but their
       // .source references the old handles.
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local lookup, not reactive state
       const idToFile = new Map<string, Extract<PDFYFileSystemEntry, { kind: "file" }>>();
       function walk(entries: PDFYFileSystemEntry[]): void {
         for (const e of entries) {
@@ -196,6 +197,20 @@ class EditorState {
   toggleFolder(id: string): void {
     if (this.expandedFolders.has(id)) this.expandedFolders.delete(id);
     else this.expandedFolders.add(id);
+  }
+
+  /**
+   * Expand all ancestor folders for a given file path so the file is visible
+   * in the tree. Path is the entry id (a /-separated relative path).
+   */
+  revealInTree(filePath: string): void {
+    const parts = filePath.split("/");
+    let acc = "";
+    for (let i = 0; i < parts.length - 1; i++) {
+      acc = acc ? `${acc}/${parts[i]}` : parts[i];
+      this.expandedFolders.add(acc);
+    }
+    this.focusedFileId = filePath;
   }
 
   expandAll(tree: PDFYFileSystemEntry[] = this.tree ?? []): void {
