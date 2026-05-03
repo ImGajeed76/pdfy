@@ -50,12 +50,18 @@
     return entry.source.path;
   }
 
-  let isSelected = $derived(editor.selectedIndexId === entry.id);
+  let isSelected = $derived(editor.selectedIndexIds.has(entry.id));
+  let isCurrent = $derived(editor.currentEntryId === entry.id);
 
   function handleClick(e: MouseEvent): void {
-    if (e.shiftKey || e.metaKey || e.ctrlKey) return; // multi-select handled elsewhere
-    editor.selectedIndexId = entry.id;
-    onJumpTo(entry.id);
+    if (e.shiftKey) {
+      editor.selectRange(entry.id);
+    } else if (e.metaKey || e.ctrlKey) {
+      editor.toggleSelection(entry.id);
+    } else {
+      editor.selectOne(entry.id);
+      onJumpTo(entry.id);
+    }
   }
 
   function handleRemove(): void {
@@ -116,7 +122,9 @@
         {...props}
         class="group/item hover:bg-muted/50 flex items-center gap-1.5 border-l-2 px-2 py-1.5 text-left text-sm transition-colors {isSelected
           ? 'bg-muted/70 border-l-primary'
-          : 'border-l-transparent'} {dragging ? 'opacity-40' : ''}"
+          : isCurrent
+            ? 'border-l-primary/40'
+            : 'border-l-transparent'} {dragging ? 'opacity-40' : ''}"
         draggable={true}
         ondragstart={handleDragStart}
         ondragend={handleDragEnd}

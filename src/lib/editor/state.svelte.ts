@@ -36,15 +36,21 @@ class EditorState {
   rootHandle: FileSystemDirectoryHandle | null = $state(null);
   tree: PDFYFileSystemEntry[] | null = $state(null);
   isLoadingDirectory = $state(false);
+  /** IDB id for the current project. Set when remembered/loaded. */
+  projectId: string | null = $state(null);
 
   rootName = $derived(this.rootHandle?.name ?? null);
 
   // ── Index (the print plan) ──────────────────────────────────────────────
   index: IndexEntry[] = $state([]);
   groups: IndexGroup[] = $state([]);
-  selectedIndexId: string | null = $state(null);
-  // Multi-select (cmd/shift-click on index entries)
+  /** Multi-select. Single click replaces, shift-click extends, cmd/ctrl
+   *  toggles. Drives the contextual settings bar. */
   selectedIndexIds: SvelteSet<string> = new SvelteSet();
+  /** Anchor for shift-click range selection. */
+  selectionAnchorId: string | null = $state(null);
+  /** Scroll-position derived: currently most-visible entry in preview. */
+  currentEntryId: string | null = $state(null);
 
   // ── Tree state ──────────────────────────────────────────────────────────
   treeFilter = $state("");
@@ -91,26 +97,7 @@ class EditorState {
     const result = await openDirectory();
     this.isLoadingDirectory = false;
     if (!result) return { ok: false, reason: "cancelled-or-error" };
-    this.rootHandle = result.handle;
-    this.tree = result.tree;
-    this.contentCache.clear();
-    this.loadingFiles.clear();
-    this.expandedFolders.clear();
-    // Default-expand root level
-    for (const e of result.tree) {
-      if (e.kind === "directory") this.expandedFolders.add(e.id);
-    }
-    this.index = [];
-    this.groups = [];
-    this.undoStack = [];
-    this.redoStack = [];
-    this.canUndo = false;
-    this.canRedo = false;
-    if (this.settings.autoSelect) {
-      this.applySmartAutoSelect();
-    }
-    // Persist as recent (lazy-loaded).
-    void rememberAndPersist(this);
+    await this.adoptHandleAndTree(result.handle, result.tree, { freshTreeOnly: false });
     return { ok: true };
   }
 
@@ -123,11 +110,23 @@ class EditorState {
     try {
       tree = await processDirectory(handle);
     } catch {
-      // Permission revoked or read error.
       this.isLoadingDirectory = false;
       return;
     }
     this.isLoadingDirectory = false;
+    await this.adoptHandleAndTree(handle, tree, { freshTreeOnly: false });
+  }
+
+  /**
+   * Internal: adopt a directory handle and freshly walked tree. Restore saved
+   * project state if present, otherwise apply smart auto-select. Sets up
+   * autosave for subsequent mutations.
+   */
+  private async adoptHandleAndTree(
+    handle: FileSystemDirectoryHandle,
+    tree: PDFYFileSystemEntry[],
+    _opts: { freshTreeOnly: boolean },
+  ): Promise<void> {
     this.rootHandle = handle;
     this.tree = tree;
     this.contentCache.clear();
@@ -140,7 +139,41 @@ class EditorState {
     this.redoStack = [];
     this.canUndo = false;
     this.canRedo = false;
-    if (this.settings.autoSelect) this.applySmartAutoSelect();
+    this.selectedIndexIds.clear();
+    this.selectionAnchorId = null;
+    this.currentEntryId = null;
+
+    // Try to restore saved state for this project (matched by handle equality).
+    const restored = await tryRestoreProjectState(handle);
+    if (restored) {
+      this.projectId = restored.id;
+      // Re-link saved index entries to the FRESH tree's source objects so
+      // counts/badges line up. Saved entries' ids match by path, but their
+      // .source references the old handles.
+      const idToFile = new Map<string, Extract<PDFYFileSystemEntry, { kind: "file" }>>();
+      function walk(entries: PDFYFileSystemEntry[]): void {
+        for (const e of entries) {
+          if (e.kind === "file") idToFile.set(e.id, e);
+          else walk(e.children);
+        }
+      }
+      walk(tree);
+      this.index = restored.state.index
+        .map((entry) => {
+          if (entry.kind !== "file") return entry;
+          const fresh = idToFile.get(entry.source.id);
+          if (!fresh) return null; // file no longer exists
+          return { ...entry, source: fresh } as IndexEntry;
+        })
+        .filter((e): e is IndexEntry => e !== null);
+      this.groups = restored.state.groups;
+      // Pre-warm content for restored files.
+      for (const e of this.index) {
+        if (e.kind === "file") this.ensureContent(e.source).catch(() => {});
+      }
+    } else if (this.settings.autoSelect) {
+      this.applySmartAutoSelect();
+    }
     void rememberAndPersist(this);
   }
 
@@ -305,8 +338,9 @@ class EditorState {
     if (idx < 0) return;
     this.snapshot();
     this.index = this.index.filter((e) => e.id !== entryId);
-    if (this.selectedIndexId === entryId) this.selectedIndexId = null;
     this.selectedIndexIds.delete(entryId);
+    if (this.currentEntryId === entryId) this.currentEntryId = null;
+    if (this.selectionAnchorId === entryId) this.selectionAnchorId = null;
   }
 
   removeEntries(ids: string[]): void {
@@ -314,8 +348,46 @@ class EditorState {
     this.snapshot();
     const idSet = new Set(ids);
     this.index = this.index.filter((e) => !idSet.has(e.id));
-    if (this.selectedIndexId && idSet.has(this.selectedIndexId)) this.selectedIndexId = null;
     for (const id of ids) this.selectedIndexIds.delete(id);
+    if (this.currentEntryId && idSet.has(this.currentEntryId)) this.currentEntryId = null;
+    if (this.selectionAnchorId && idSet.has(this.selectionAnchorId)) this.selectionAnchorId = null;
+  }
+
+  /** Selection helpers used by IndexItem click handling. */
+  selectOne(id: string): void {
+    this.selectedIndexIds.clear();
+    this.selectedIndexIds.add(id);
+    this.selectionAnchorId = id;
+  }
+
+  toggleSelection(id: string): void {
+    if (this.selectedIndexIds.has(id)) {
+      this.selectedIndexIds.delete(id);
+    } else {
+      this.selectedIndexIds.add(id);
+      this.selectionAnchorId = id;
+    }
+  }
+
+  selectRange(toId: string): void {
+    if (!this.selectionAnchorId) {
+      this.selectOne(toId);
+      return;
+    }
+    const fromIdx = this.index.findIndex((e) => e.id === this.selectionAnchorId);
+    const toIdx = this.index.findIndex((e) => e.id === toId);
+    if (fromIdx < 0 || toIdx < 0) {
+      this.selectOne(toId);
+      return;
+    }
+    const [a, b] = fromIdx <= toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
+    this.selectedIndexIds.clear();
+    for (let i = a; i <= b; i++) this.selectedIndexIds.add(this.index[i].id);
+  }
+
+  clearSelection(): void {
+    this.selectedIndexIds.clear();
+    this.selectionAnchorId = null;
   }
 
   moveEntry(entryId: string, toIndex: number): void {
@@ -591,8 +663,42 @@ async function rememberAndPersist(state: EditorState): Promise<void> {
   if (!state.rootHandle) return;
   try {
     const { rememberProject } = await import("./recent");
-    await rememberProject(state.rootHandle, state.fileCount);
+    const id = await rememberProject(state.rootHandle, state.fileCount);
+    if (id) state.projectId = id;
   } catch {
     // IndexedDB unavailable or quota exceeded; non-fatal.
   }
+}
+
+async function tryRestoreProjectState(
+  handle: FileSystemDirectoryHandle,
+): Promise<{ id: string; state: { index: IndexEntry[]; groups: IndexGroup[] } } | null> {
+  try {
+    const { findProjectIdForHandle, loadProjectState } = await import("./recent");
+    const id = await findProjectIdForHandle(handle);
+    if (!id) return null;
+    const state = await loadProjectState(id);
+    if (!state) return null;
+    return { id, state };
+  } catch {
+    return null;
+  }
+}
+
+/** Debounced autosave of the current project's index/groups to IDB. */
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+export function scheduleAutosave(): void {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    if (!editor.projectId) return;
+    try {
+      const { saveProjectState } = await import("./recent");
+      await saveProjectState(editor.projectId, {
+        index: editor.index,
+        groups: editor.groups,
+      });
+    } catch {
+      // non-fatal
+    }
+  }, 600);
 }

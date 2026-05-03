@@ -20,7 +20,14 @@
 
   async function handleOpen(): Promise<void> {
     const result = await editor.openProject();
-    if (!result.ok && result.reason !== "cancelled-or-error") {
+    if (result.ok) {
+      toast.success(`Loaded ${editor.rootName ?? "project"}`, {
+        description:
+          editor.fileCount > 0
+            ? `${editor.fileCount} files added to your print plan.`
+            : "Drag files from the tree to start composing.",
+      });
+    } else if (result.reason !== "cancelled-or-error") {
       toast.error("Could not open the folder.");
     }
   }

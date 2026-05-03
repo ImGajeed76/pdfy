@@ -50,8 +50,8 @@
             bestId = id;
           }
         }
-        if (bestId && editor.selectedIndexId !== bestId) {
-          editor.selectedIndexId = bestId;
+        if (bestId && editor.currentEntryId !== bestId) {
+          editor.currentEntryId = bestId;
         }
       },
       {

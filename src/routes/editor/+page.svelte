@@ -2,9 +2,11 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import * as Resizable from "$lib/components/ui/resizable";
-  import { editor } from "$lib/editor/state.svelte";
+  import { editor, scheduleAutosave } from "$lib/editor/state.svelte";
   import { applyCodeTheme } from "$lib/editor/theme";
+  import { applyPageSize } from "$lib/editor/print";
   import BrandBar from "$lib/components/editor/BrandBar.svelte";
+  import ContextualBar from "$lib/components/editor/ContextualBar.svelte";
   import Tree from "$lib/components/editor/Tree.svelte";
   import IndexPane from "$lib/components/editor/Index.svelte";
   import Preview from "$lib/components/editor/Preview.svelte";
@@ -22,6 +24,19 @@
   // Apply current code theme + react to changes.
   $effect(() => {
     applyCodeTheme(editor.settings.codeTheme);
+  });
+
+  // Apply page size for print.
+  $effect(() => {
+    applyPageSize(editor.settings.pageSize);
+  });
+
+  // Autosave per-project state (index + groups) on every change.
+  $effect(() => {
+    // Read both to register dependency.
+    void editor.index;
+    void editor.groups;
+    if (editor.projectId) scheduleAutosave();
   });
 
   // Keyboard shortcuts: Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Cmd/Ctrl+P
@@ -57,7 +72,6 @@
   <style>
     @media print {
       @page {
-        size: A4;
         margin: 1.5cm;
         @bottom-right {
           content: counter(page) " / " counter(pages);
@@ -95,6 +109,10 @@
 
 <div class="bg-background text-foreground flex h-screen flex-col print:hidden">
   <BrandBar onOpenSettings={() => (settingsOpen = true)} onOpenRecent={() => (recentOpen = true)} />
+
+  {#if editor.rootHandle}
+    <ContextualBar />
+  {/if}
 
   <div class="min-h-0 flex-1">
     {#if !editor.rootHandle}

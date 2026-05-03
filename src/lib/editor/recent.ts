@@ -1,5 +1,6 @@
 import { get, set, del, keys, createStore } from "idb-keyval";
 import { editor } from "./state.svelte";
+import type { IndexEntry, IndexGroup } from "./types";
 
 /**
  * Recent projects: store FileSystemDirectoryHandle plus minimal metadata
@@ -12,8 +13,14 @@ import { editor } from "./state.svelte";
 const RECENTS_KEY = "pdfy:recents:list";
 const HANDLES_STORE = createStore("pdfy", "handles");
 const META_STORE = createStore("pdfy", "meta");
+const STATES_STORE = createStore("pdfy", "states");
 
 const MAX_RECENTS = 10;
+
+interface ProjectState {
+  index: IndexEntry[];
+  groups: IndexGroup[];
+}
 
 function generateId(): string {
   return `p_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
@@ -87,6 +94,34 @@ export async function removeRecentProject(id: string): Promise<void> {
   const list = await loadList();
   await saveList(list.filter((m) => m.id !== id));
   await del(id, HANDLES_STORE);
+  await del(id, STATES_STORE);
+}
+
+export async function saveProjectState(id: string, state: ProjectState): Promise<void> {
+  if (typeof indexedDB === "undefined" || !id) return;
+  await set(id, state, STATES_STORE);
+}
+
+export async function loadProjectState(id: string): Promise<ProjectState | null> {
+  if (typeof indexedDB === "undefined" || !id) return null;
+  const v = (await get(id, STATES_STORE)) as ProjectState | undefined;
+  return v ?? null;
+}
+
+/**
+ * Find the IDB id of a saved project that matches this handle. Returns null
+ * if not found. Uses isSameEntry() to compare directory handles.
+ */
+export async function findProjectIdForHandle(
+  handle: FileSystemDirectoryHandle,
+): Promise<string | null> {
+  if (typeof indexedDB === "undefined") return null;
+  const list = await loadList();
+  for (const meta of list) {
+    const stored = (await get(meta.id, HANDLES_STORE)) as FileSystemDirectoryHandle | undefined;
+    if (stored && (await stored.isSameEntry(handle))) return meta.id;
+  }
+  return null;
 }
 
 export async function openRecentProject(id: string): Promise<{ ok: boolean; reason?: string }> {

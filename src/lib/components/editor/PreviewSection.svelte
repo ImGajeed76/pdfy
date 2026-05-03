@@ -4,6 +4,7 @@
   import { determineFileDisplayProperties } from "$lib/fileSystem";
   import { highlightToLines, languageForExtension } from "$lib/editor/highlight";
   import MarkdownIt from "markdown-it";
+  import CsvTable from "./CsvTable.svelte";
   import { Button } from "$lib/components/ui/button";
   import X from "@lucide/svelte/icons/x";
   import ChevronUp from "@lucide/svelte/icons/chevron-up";
@@ -56,6 +57,11 @@
 
   let isImage = $derived(fileType === "graphic");
   let isBinary = $derived(fileType === "binary");
+  let isCsv = $derived(extension === "csv");
+  let isTsv = $derived(extension === "tsv");
+  let renderAsTable = $derived(
+    (isCsv || isTsv) && (entry.renderMode ?? editor.settings.defaultCsvMode) === "rendered",
+  );
   let isMarkdownRendered = $derived(
     fileType === "rendered" &&
       (extension === "md" || extension === "markdown") &&
@@ -181,6 +187,8 @@
         <!-- eslint-disable-next-line svelte/no-at-html-tags -- user's own SVG file content -->
         {@html content}
       </div>
+    {:else if renderAsTable && content}
+      <CsvTable {content} separator={isTsv ? "\t" : ","} />
     {:else if isMarkdownRendered && renderedHtml}
       <article class="markdown-body prose prose-sm dark:prose-invert max-w-none">
         <!-- eslint-disable-next-line svelte/no-at-html-tags -- markdown-it output, html: false -->
