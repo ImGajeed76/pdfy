@@ -1,49 +1,55 @@
-import prettier from 'eslint-config-prettier';
-import js from '@eslint/js';
-import { includeIgnoreFile } from '@eslint/compat';
-import svelte from 'eslint-plugin-svelte';
-import globals from 'globals';
-import { fileURLToPath } from 'node:url';
-import ts from 'typescript-eslint';
-import svelteConfig from './svelte.config.js';
-
-const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
+import js from "@eslint/js";
+import ts from "typescript-eslint";
+import svelte from "eslint-plugin-svelte";
+import svelteParser from "svelte-eslint-parser";
+import globals from "globals";
 
 export default ts.config(
-	includeIgnoreFile(gitignorePath),
-	js.configs.recommended,
-	...ts.configs.recommended,
-	...svelte.configs.recommended,
-	prettier,
-	...svelte.configs.prettier,
-	{
-		languageOptions: {
-			globals: { ...globals.browser, ...globals.node }
-		},
-		rules: {
-			'no-undef': 'off',
-			'no-unused-vars': 'off',
-			'@typescript-eslint/no-unused-vars': [
-				'error',
-				{
-					vars: 'all',
-					args: 'after-used',
-					ignoreRestSiblings: true,
-					varsIgnorePattern: '^_',
-					argsIgnorePattern: '^_',
-				}
-			],
-		}
-	},
-	{
-		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
-		languageOptions: {
-			parserOptions: {
-				projectService: true,
-				extraFileExtensions: ['.svelte'],
-				parser: ts.parser,
-				svelteConfig
-			}
-		}
-	}
+  js.configs.recommended,
+  ...ts.configs.strict,
+  ...svelte.configs.recommended,
+  {
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/explicit-function-return-type": ["error", { allowExpressions: true }],
+      "no-undef": "off",
+    },
+  },
+  {
+    files: ["**/*.svelte", "**/*.svelte.ts"],
+    languageOptions: {
+      parser: svelteParser,
+      parserOptions: {
+        parser: ts.parser,
+      },
+    },
+    rules: {
+      // Svelte components have many inline event handlers and reactive functions
+      "@typescript-eslint/explicit-function-return-type": "off",
+    },
+  },
+  {
+    files: ["src/lib/components/ui/**/*.svelte"],
+    rules: {
+      // shadcn-svelte primitives use a navigation pattern the rule misreads.
+      "svelte/no-navigation-without-resolve": "off",
+    },
+  },
+  {
+    ignores: [".svelte-kit/", "build/", "node_modules/"],
+  },
 );

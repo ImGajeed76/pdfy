@@ -1,5 +1,5 @@
-import { writable, type Writable } from 'svelte/store';
-import { type PDFYFileSystemEntry, RenderMode } from '$lib/types';
+import { writable, type Writable } from "svelte/store";
+import { type PDFYFileSystemEntry, RenderMode } from "$lib/types";
 
 export const rootDirectoryHandle: Writable<FileSystemDirectoryHandle | null> = writable(null);
 export const fileTree: Writable<PDFYFileSystemEntry[] | null> = writable(null);

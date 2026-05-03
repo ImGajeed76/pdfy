@@ -13,9 +13,9 @@ text-based, searchable PDF using your browser's built-in print functionality.
 Please keep in mind that this project was put together quickly (in about a day!). As such, users **shouldn't expect
 complete stability or full feature compatibility** at this stage.
 
-*   **Not all advertised features are fully implemented.**
-*   **HTML, Markdown (.md), and XML rendering has not been thoroughly tested and may not work correctly.**
-*   Currently, PDFy primarily focuses on rendering **raw text files with syntax highlighting.**
+- **Not all advertised features are fully implemented.**
+- **HTML, Markdown (.md), and XML rendering has not been thoroughly tested and may not work correctly.**
+- Currently, PDFy primarily focuses on rendering **raw text files with syntax highlighting.**
 
 Development is ongoing, and contributions are welcome to improve functionality and address these limitations!
 
@@ -24,47 +24,49 @@ Development is ongoing, and contributions are welcome to improve functionality a
 Many developers, especially students preparing project documentation, face issues with IDEs or tools that generate PDFs
 by rasterizing code into images or that can't even do it. This results in:
 
-*   HUGE file sizes (e.g., 100MB instead of <5MB).
-*   Non-searchable content.
-*   Poor text quality and inability to select/copy code.
+- HUGE file sizes (e.g., 100MB instead of <5MB).
+- Non-searchable content.
+- Poor text quality and inability to select/copy code.
 
 PDFy aims to provide a simple, local, and effective solution to generate high-quality, text-based PDFs of your codebase
 and documentation.
 
 ## Key Features ✨
 
-*   **Local Processing:** No server-side uploads! All file processing happens directly in your browser using the File
-    System Access API. Your code stays on your machine.
-*   **Folder Select:** Select an entire project folder from your local file system.
-*   **File Tree Navigation:** View your project's folder structure and select specific files.
-*   **Live Preview:** See an instant preview of your selected files with syntax highlighting.
-*   **Syntax Highlighting:** Powered by `highlight.js` for a wide range of programming languages.
-*   **Markdown Support:** Preview rendered Markdown files (experimental, see note above).
-*   **Print to PDF:** Uses your browser's native "Print to PDF" functionality with optimized print CSS for clean output.
-*   **Text-Based & Searchable PDFs:** Generates PDFs where text is text, not an image.
-*   **Customizable:** Settings for themes, line numbers, etc. (partially implemented).
-*   **GitIgnore Support:** Automatically ignores files and directories specified in `.gitignore` files within the selected
-    project directory.
+- **Local Processing:** No server-side uploads! All file processing happens directly in your browser using the File
+  System Access API. Your code stays on your machine.
+- **Folder Select:** Select an entire project folder from your local file system.
+- **File Tree Navigation:** View your project's folder structure and select specific files.
+- **Live Preview:** See an instant preview of your selected files with syntax highlighting.
+- **Syntax Highlighting:** Powered by `highlight.js` for a wide range of programming languages.
+- **Markdown Support:** Preview rendered Markdown files (experimental, see note above).
+- **Print to PDF:** Uses your browser's native "Print to PDF" functionality with optimized print CSS for clean output.
+- **Text-Based & Searchable PDFs:** Generates PDFs where text is text, not an image.
+- **Customizable:** Settings for themes, line numbers, etc. (partially implemented).
+- **GitIgnore Support:** Automatically ignores files and directories specified in `.gitignore` files within the selected
+  project directory.
 
 ## Tech Stack 🛠️
 
-*   **Framework:** [SvelteKit](https://kit.svelte.dev/)
-*   **UI Components:** [ShadcnSvelte](https://www.shadcn-svelte.com/)
-*   **Styling:** [Tailwind CSS](https://tailwindcss.com/)
-*   **Package Manager & Runtime:** [Bun](https://bun.sh/)
-*   **Syntax Highlighting:** [highlight.js](https://highlightjs.org/)
+- **Framework:** [SvelteKit](https://kit.svelte.dev/)
+- **UI Components:** [ShadcnSvelte](https://www.shadcn-svelte.com/)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **Package Manager & Runtime:** [Bun](https://bun.sh/)
+- **Syntax Highlighting:** [highlight.js](https://highlightjs.org/)
 
 ## Getting Started 🚀
 
 To run PDFy locally, you'll need [Bun](https://bun.sh/) installed.
 
 1.  **Clone the repository:**
+
     ```bash
     git clone https://github.com/ImGajeed76/pdfy.git
     cd pdfy
     ```
 
 2.  **Install dependencies:**
+
     ```bash
     bun install
     ```
@@ -90,11 +92,11 @@ To run PDFy locally, you'll need [Bun](https://bun.sh/) installed.
 
 PDFy aims to support a wide variety of text-based files, including but not limited to:
 
-*   **Programming Languages:** JavaScript, TypeScript, Python, Java, C, C++, C#, Rust, Go, PHP, Ruby, Swift,
-    Kotlin, Scala, and many more supported by `highlight.js`.
-*   **Markup & Data:** HTML, CSS, JSON, XML, YAML, TOML, Markdown (.md - rendering is experimental, see note above).
-*   **Configuration & Scripts:** `.sh`, `.bash`, `.ps1`, `Dockerfile`, `.env`, `.conf`, `.ini`, `.sql`.
-*   **Plain Text:** `.txt`, `.log`, `.gitignore`, and other generic text files.
+- **Programming Languages:** JavaScript, TypeScript, Python, Java, C, C++, C#, Rust, Go, PHP, Ruby, Swift,
+  Kotlin, Scala, and many more supported by `highlight.js`.
+- **Markup & Data:** HTML, CSS, JSON, XML, YAML, TOML, Markdown (.md - rendering is experimental, see note above).
+- **Configuration & Scripts:** `.sh`, `.bash`, `.ps1`, `Dockerfile`, `.env`, `.conf`, `.ini`, `.sql`.
+- **Plain Text:** `.txt`, `.log`, `.gitignore`, and other generic text files.
 
 If a file is text-based, PDFy will do its best to display it with syntax highlighting. Unknown code file types will be treated as plain text.
 For HTML, MD, and XML, rendering is currently experimental and may default to raw text.
