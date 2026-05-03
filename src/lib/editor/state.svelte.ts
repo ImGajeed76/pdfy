@@ -159,6 +159,7 @@ class EditorState {
         }
       }
       walk(tree);
+      const beforeCount = restored.state.index.filter((e) => e.kind === "file").length;
       this.index = restored.state.index
         .map((entry) => {
           if (entry.kind !== "file") return entry;
@@ -168,10 +169,14 @@ class EditorState {
         })
         .filter((e): e is IndexEntry => e !== null);
       this.groups = restored.state.groups;
+      const afterCount = this.index.filter((e) => e.kind === "file").length;
+      const dropped = beforeCount - afterCount;
       // Pre-warm content for restored files.
       for (const e of this.index) {
         if (e.kind === "file") this.ensureContent(e.source).catch(() => {});
       }
+      // Surface a toast that the previous state was restored.
+      void notifyRestored(afterCount, dropped);
     } else if (this.settings.autoSelect) {
       this.applySmartAutoSelect();
     }
@@ -697,6 +702,22 @@ async function tryRestoreProjectState(
     return { id, state };
   } catch {
     return null;
+  }
+}
+
+async function notifyRestored(restored: number, dropped: number): Promise<void> {
+  try {
+    const { toast } = await import("svelte-sonner");
+    if (restored === 0) return;
+    const desc =
+      dropped > 0
+        ? `${restored} files restored, ${dropped} no longer exist in the folder.`
+        : undefined;
+    toast.success(`Restored your previous plan`, {
+      description: desc,
+    });
+  } catch {
+    // svelte-sonner not loadable; skip silently.
   }
 }
 

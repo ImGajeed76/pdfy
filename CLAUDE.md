@@ -14,7 +14,7 @@ PDFy is a client-side SvelteKit web app that turns source code and text files in
 - **Components:** shadcn-svelte (under `src/lib/components/ui/`). Domain-specific components live under `src/lib/components/ui/pdfy/`.
 - **Icons:** Lucide (`@lucide/svelte`)
 - **i18n:** Not used. English only.
-- **Theme:** Light/dark is user-switchable via `mode-watcher`. Don't hardcode `dark:` overrides where a theme token already adapts.
+- **Theme:** Light only. `mode-watcher` was removed; `<html>` never gets `.dark`. Use theme tokens. No `dark:` overrides anywhere.
 - **Deployment:** Static site (currently `@sveltejs/adapter-auto`). Hosted at `pdfy.oseifert.ch`.
 - **Analytics:** None.
 - **File system access:** Browser File System Access API (`@types/wicg-file-system-access`). Core logic in `src/lib/fileSystem.ts`. `.gitignore` rules are respected when traversing.
