@@ -1,7 +1,10 @@
 <script lang="ts">
   import * as Sheet from "$lib/components/ui/sheet";
+  import * as ToggleGroup from "$lib/components/ui/toggle-group";
   import { Button } from "$lib/components/ui/button";
   import { Label } from "$lib/components/ui/label";
+  import { Switch } from "$lib/components/ui/switch";
+  import { Slider } from "$lib/components/ui/slider";
   import { editor } from "$lib/editor/state.svelte";
   import { DEFAULT_SETTINGS } from "$lib/editor/types";
 
@@ -11,7 +14,7 @@
     editor.updateSettings({ ...DEFAULT_SETTINGS });
   }
 
-  type Toggle =
+  type ToggleKey =
     | "showLineNumbers"
     | "showCover"
     | "showToc"
@@ -20,8 +23,8 @@
     | "autoSelect"
     | "autoGroup";
 
-  function toggle(key: Toggle): void {
-    editor.updateSettings({ [key]: !editor.settings[key] });
+  function setBool(key: ToggleKey, value: boolean): void {
+    editor.updateSettings({ [key]: value });
   }
 </script>
 
@@ -33,138 +36,132 @@
         Defaults that apply to the whole project. Per-file overrides live in the contextual bar.
       </Sheet.Description>
     </Sheet.Header>
-    <div class="flex-1 space-y-6 overflow-y-auto p-6">
+    <div class="flex-1 space-y-8 overflow-y-auto p-6">
       <!-- Preview -->
-      <section class="space-y-3">
+      <section class="space-y-4">
         <h3 class="text-foreground text-sm font-semibold">Preview</h3>
-        <div class="grid grid-cols-2 gap-2">
-          <Button
-            variant={editor.settings.codeTheme === "github-light" ? "default" : "outline"}
-            size="sm"
-            onclick={() => editor.updateSettings({ codeTheme: "github-light" })}
+
+        <div class="space-y-2">
+          <Label class="text-xs">Code theme</Label>
+          <ToggleGroup.Root
+            type="single"
+            value={editor.settings.codeTheme}
+            onValueChange={(v) =>
+              v && editor.updateSettings({ codeTheme: v as "github-light" | "github-dark" })}
+            variant="outline"
+            class="w-full"
           >
-            Light theme
-          </Button>
-          <Button
-            variant={editor.settings.codeTheme === "github-dark" ? "default" : "outline"}
-            size="sm"
-            onclick={() => editor.updateSettings({ codeTheme: "github-dark" })}
-          >
-            Dark theme
-          </Button>
+            <ToggleGroup.Item value="github-light" class="flex-1">Light</ToggleGroup.Item>
+            <ToggleGroup.Item value="github-dark" class="flex-1">Dark</ToggleGroup.Item>
+          </ToggleGroup.Root>
         </div>
-        <div class="space-y-1.5">
-          <Label class="text-xs">Code font size ({editor.settings.codeFontSize}pt)</Label>
-          <input
-            type="range"
-            min="8"
-            max="14"
-            step="1"
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <Label class="text-xs">Code font size</Label>
+            <span class="text-muted-foreground text-xs tabular-nums">
+              {editor.settings.codeFontSize}pt
+            </span>
+          </div>
+          <Slider
+            type="single"
             value={editor.settings.codeFontSize}
-            class="w-full accent-[var(--primary)]"
-            oninput={(e) =>
-              editor.updateSettings({ codeFontSize: Number((e.target as HTMLInputElement).value) })}
+            onValueChange={(v) => editor.updateSettings({ codeFontSize: v })}
+            min={8}
+            max={14}
+            step={1}
           />
         </div>
-        <label class="flex items-center justify-between text-sm">
-          <span>Show line numbers</span>
-          <input
-            type="checkbox"
+
+        <div class="flex items-center justify-between gap-4">
+          <Label class="text-sm">Show line numbers</Label>
+          <Switch
             checked={editor.settings.showLineNumbers}
-            onchange={() => toggle("showLineNumbers")}
-            class="size-4 accent-[var(--primary)]"
+            onCheckedChange={(v) => setBool("showLineNumbers", v)}
           />
-        </label>
-        <label class="flex items-center justify-between text-sm">
-          <span>Show file path under title</span>
-          <input
-            type="checkbox"
+        </div>
+
+        <div class="flex items-center justify-between gap-4">
+          <Label class="text-sm">Show file path under title</Label>
+          <Switch
             checked={editor.settings.showPath}
-            onchange={() => toggle("showPath")}
-            class="size-4 accent-[var(--primary)]"
+            onCheckedChange={(v) => setBool("showPath", v)}
           />
-        </label>
+        </div>
       </section>
 
       <!-- Print -->
-      <section class="space-y-3">
+      <section class="space-y-4">
         <h3 class="text-foreground text-sm font-semibold">Print</h3>
-        <div class="grid grid-cols-2 gap-2">
-          <Button
-            variant={editor.settings.pageSize === "A4" ? "default" : "outline"}
-            size="sm"
-            onclick={() => editor.updateSettings({ pageSize: "A4" })}
+
+        <div class="space-y-2">
+          <Label class="text-xs">Page size</Label>
+          <ToggleGroup.Root
+            type="single"
+            value={editor.settings.pageSize}
+            onValueChange={(v) => v && editor.updateSettings({ pageSize: v as "A4" | "Letter" })}
+            variant="outline"
+            class="w-full"
           >
-            A4
-          </Button>
-          <Button
-            variant={editor.settings.pageSize === "Letter" ? "default" : "outline"}
-            size="sm"
-            onclick={() => editor.updateSettings({ pageSize: "Letter" })}
-          >
-            US Letter
-          </Button>
+            <ToggleGroup.Item value="A4" class="flex-1">A4</ToggleGroup.Item>
+            <ToggleGroup.Item value="Letter" class="flex-1">US Letter</ToggleGroup.Item>
+          </ToggleGroup.Root>
         </div>
-        <label class="flex items-center justify-between text-sm">
-          <span>Cover page</span>
-          <input
-            type="checkbox"
+
+        <div class="flex items-center justify-between gap-4">
+          <Label class="text-sm">Cover page</Label>
+          <Switch
             checked={editor.settings.showCover}
-            onchange={() => toggle("showCover")}
-            class="size-4 accent-[var(--primary)]"
+            onCheckedChange={(v) => setBool("showCover", v)}
           />
-        </label>
-        <label class="flex items-center justify-between text-sm">
-          <span>Table of contents</span>
-          <input
-            type="checkbox"
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <Label class="text-sm">Table of contents</Label>
+          <Switch
             checked={editor.settings.showToc}
-            onchange={() => toggle("showToc")}
-            class="size-4 accent-[var(--primary)]"
+            onCheckedChange={(v) => setBool("showToc", v)}
           />
-        </label>
-        <label class="flex items-center justify-between text-sm">
-          <span>Group dividers</span>
-          <input
-            type="checkbox"
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <Label class="text-sm">Group dividers</Label>
+          <Switch
             checked={editor.settings.showGroupDividers}
-            onchange={() => toggle("showGroupDividers")}
-            class="size-4 accent-[var(--primary)]"
+            onCheckedChange={(v) => setBool("showGroupDividers", v)}
           />
-        </label>
+        </div>
       </section>
 
       <!-- Behavior -->
-      <section class="space-y-3">
+      <section class="space-y-4">
         <h3 class="text-foreground text-sm font-semibold">Behavior</h3>
-        <label class="flex items-center justify-between text-sm">
-          <span>
-            Smart-add files on folder open
-            <span class="text-muted-foreground ml-1 block text-xs">
+
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex flex-col">
+            <Label class="text-sm">Smart-add files on folder open</Label>
+            <span class="text-muted-foreground mt-0.5 text-xs">
               Auto-adds code, text, and markdown.
             </span>
-          </span>
-          <input
-            type="checkbox"
+          </div>
+          <Switch
             checked={editor.settings.autoSelect}
-            onchange={() => toggle("autoSelect")}
-            class="size-4 shrink-0 accent-[var(--primary)]"
+            onCheckedChange={(v) => setBool("autoSelect", v)}
+            class="mt-0.5"
           />
-        </label>
-        <label class="flex items-center justify-between text-sm">
-          <span>
-            Auto-group tests &amp; config
-            <span class="text-muted-foreground ml-1 block text-xs">
+        </div>
+
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex flex-col">
+            <Label class="text-sm">Auto-group tests &amp; config</Label>
+            <span class="text-muted-foreground mt-0.5 text-xs">
               Group test files and root configs separately.
             </span>
-          </span>
-          <input
-            type="checkbox"
+          </div>
+          <Switch
             checked={editor.settings.autoGroup}
-            onchange={() => toggle("autoGroup")}
-            class="size-4 shrink-0 accent-[var(--primary)]"
+            onCheckedChange={(v) => setBool("autoGroup", v)}
+            class="mt-0.5"
           />
-        </label>
+        </div>
       </section>
 
       <!-- Per-type defaults -->
@@ -174,31 +171,25 @@
           Per-file overrides win. Each row is the default for new files of that type.
         </p>
         <div class="space-y-2">
-          {#each [{ key: "defaultMarkdownMode", label: "Markdown" }, { key: "defaultHtmlMode", label: "HTML" }, { key: "defaultXmlMode", label: "XML" }] as row (row.key)}
-            <div class="flex items-center justify-between">
-              <span class="text-sm">{row.label}</span>
-              <div class="flex items-center gap-1">
-                <Button
-                  variant={editor.settings[row.key as keyof typeof editor.settings] === "raw"
-                    ? "default"
-                    : "outline"}
-                  size="sm"
-                  class="h-7 px-2 text-xs"
-                  onclick={() => editor.updateSettings({ [row.key]: "raw" })}
-                >
-                  Raw
-                </Button>
-                <Button
-                  variant={editor.settings[row.key as keyof typeof editor.settings] === "rendered"
-                    ? "default"
-                    : "outline"}
-                  size="sm"
-                  class="h-7 px-2 text-xs"
-                  onclick={() => editor.updateSettings({ [row.key]: "rendered" })}
-                >
-                  Rendered
-                </Button>
-              </div>
+          {#each [{ key: "defaultMarkdownMode", label: "Markdown" }, { key: "defaultHtmlMode", label: "HTML" }, { key: "defaultXmlMode", label: "XML" }, { key: "defaultJsonMode", label: "JSON" }, { key: "defaultCsvMode", label: "CSV / TSV" }] as row (row.key)}
+            <div class="flex items-center justify-between gap-3">
+              <Label class="text-sm">{row.label}</Label>
+              <ToggleGroup.Root
+                type="single"
+                value={editor.settings[row.key as keyof typeof editor.settings] as string}
+                onValueChange={(v) => v && editor.updateSettings({ [row.key]: v })}
+                variant="outline"
+                size="sm"
+              >
+                <ToggleGroup.Item value="raw" class="px-3">Raw</ToggleGroup.Item>
+                <ToggleGroup.Item value="rendered" class="px-3">
+                  {row.key === "defaultJsonMode"
+                    ? "Tree"
+                    : row.key === "defaultCsvMode"
+                      ? "Table"
+                      : "Rendered"}
+                </ToggleGroup.Item>
+              </ToggleGroup.Root>
             </div>
           {/each}
         </div>

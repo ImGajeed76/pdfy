@@ -2,8 +2,10 @@
   import { editor } from "$lib/editor/state.svelte";
   import { Button } from "$lib/components/ui/button";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import * as ToggleGroup from "$lib/components/ui/toggle-group";
   import type { IndexEntry } from "$lib/editor/types";
   import { determineFileDisplayProperties } from "$lib/fileSystem";
+  import { promptText } from "$lib/editor/prompt.svelte";
   import Sun from "@lucide/svelte/icons/sun";
   import Moon from "@lucide/svelte/icons/moon";
   import Hash from "@lucide/svelte/icons/hash";
@@ -88,8 +90,14 @@
     editor.updateEntry(entry.id, { showLineNumbers: value });
   }
 
-  function setCustomTitle(entry: Extract<IndexEntry, { kind: "file" }>): void {
-    const next = window.prompt("Custom title:", entry.customTitle ?? "");
+  async function setCustomTitle(entry: Extract<IndexEntry, { kind: "file" }>): Promise<void> {
+    const next = await promptText({
+      title: "Custom title",
+      description: "Override the default filename used as the section heading.",
+      label: "Title",
+      value: entry.customTitle ?? "",
+      placeholder: entry.source.name,
+    });
     if (next === null) return;
     editor.updateEntry(entry.id, { customTitle: next.trim() || null });
   }
@@ -116,14 +124,25 @@
     });
   }
 
-  function setCoverTitle(entry: Extract<IndexEntry, { kind: "cover" }>): void {
-    const next = window.prompt("Cover title:", entry.title);
+  async function setCoverTitle(entry: Extract<IndexEntry, { kind: "cover" }>): Promise<void> {
+    const next = await promptText({
+      title: "Cover title",
+      label: "Title",
+      value: entry.title,
+      placeholder: editor.rootName ?? "PDFy Project",
+    });
     if (next === null) return;
     editor.updateEntry(entry.id, { title: next.trim() || (editor.rootName ?? "PDFy Project") });
   }
 
-  function setCoverSubtitle(entry: Extract<IndexEntry, { kind: "cover" }>): void {
-    const next = window.prompt("Subtitle (empty for none):", entry.subtitle ?? "");
+  async function setCoverSubtitle(entry: Extract<IndexEntry, { kind: "cover" }>): Promise<void> {
+    const next = await promptText({
+      title: "Subtitle",
+      description: "Optional. Leave empty to remove.",
+      label: "Subtitle",
+      value: entry.subtitle ?? "",
+      placeholder: "e.g. Source code submission",
+    });
     if (next === null) return;
     editor.updateEntry(entry.id, { subtitle: next.trim() || null });
   }
@@ -232,60 +251,37 @@
       {#if renderable && renderable !== "svg"}
         {@const labelRendered =
           renderable === "csv" ? "Table" : renderable === "json" ? "Tree" : "Rendered"}
-        {@const labelRaw = "Raw"}
         <span class="bg-border/60 mx-1 h-4 w-px"></span>
-        <Button
-          variant={effectiveRenderMode(entry) === "raw" ? "default" : "ghost"}
+        <ToggleGroup.Root
+          type="single"
+          value={effectiveRenderMode(entry)}
+          onValueChange={(v) => v && setRenderMode(entry, v as "raw" | "rendered")}
+          variant="outline"
           size="sm"
-          class="h-7 px-2"
-          onclick={() => setRenderMode(entry, "raw")}
         >
-          {labelRaw}
-        </Button>
-        <Button
-          variant={effectiveRenderMode(entry) === "rendered" ? "default" : "ghost"}
-          size="sm"
-          class="h-7 px-2"
-          onclick={() => setRenderMode(entry, "rendered")}
-        >
-          {labelRendered}
-        </Button>
+          <ToggleGroup.Item value="raw" class="h-7 px-2">Raw</ToggleGroup.Item>
+          <ToggleGroup.Item value="rendered" class="h-7 px-2">{labelRendered}</ToggleGroup.Item>
+        </ToggleGroup.Root>
       {/if}
       {#if image}
         <span class="bg-border/60 mx-1 h-4 w-px"></span>
-        <Button
-          variant={(entry.imageAlign ?? editor.settings.defaultImageAlign) === "left"
-            ? "default"
-            : "ghost"}
+        <ToggleGroup.Root
+          type="single"
+          value={entry.imageAlign ?? editor.settings.defaultImageAlign}
+          onValueChange={(v) => v && setImageAlign(entry, v as "left" | "center" | "right")}
+          variant="outline"
           size="sm"
-          class="size-7 p-0"
-          onclick={() => setImageAlign(entry, "left")}
-          aria-label="Align left"
         >
-          <AlignLeft class="size-3.5" />
-        </Button>
-        <Button
-          variant={(entry.imageAlign ?? editor.settings.defaultImageAlign) === "center"
-            ? "default"
-            : "ghost"}
-          size="sm"
-          class="size-7 p-0"
-          onclick={() => setImageAlign(entry, "center")}
-          aria-label="Align center"
-        >
-          <AlignCenter class="size-3.5" />
-        </Button>
-        <Button
-          variant={(entry.imageAlign ?? editor.settings.defaultImageAlign) === "right"
-            ? "default"
-            : "ghost"}
-          size="sm"
-          class="size-7 p-0"
-          onclick={() => setImageAlign(entry, "right")}
-          aria-label="Align right"
-        >
-          <AlignRight class="size-3.5" />
-        </Button>
+          <ToggleGroup.Item value="left" class="size-7 p-0" aria-label="Align left">
+            <AlignLeft class="size-3.5" />
+          </ToggleGroup.Item>
+          <ToggleGroup.Item value="center" class="size-7 p-0" aria-label="Align center">
+            <AlignCenter class="size-3.5" />
+          </ToggleGroup.Item>
+          <ToggleGroup.Item value="right" class="size-7 p-0" aria-label="Align right">
+            <AlignRight class="size-3.5" />
+          </ToggleGroup.Item>
+        </ToggleGroup.Root>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger>
             {#snippet child({ props })}
@@ -379,8 +375,13 @@
         variant="ghost"
         size="sm"
         class="h-7 gap-1.5 px-2"
-        onclick={() => {
-          const next = window.prompt("TOC title:", entry.title);
+        onclick={async () => {
+          const next = await promptText({
+            title: "Table of contents title",
+            label: "Title",
+            value: entry.title,
+            placeholder: "Contents",
+          });
           if (next === null) return;
           editor.updateEntry(entry.id, { title: next.trim() || "Contents" });
         }}

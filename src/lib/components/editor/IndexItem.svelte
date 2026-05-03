@@ -2,6 +2,7 @@
   import type { IndexEntry } from "$lib/editor/types";
   import { editor } from "$lib/editor/state.svelte";
   import { determineFileDisplayProperties } from "$lib/fileSystem";
+  import { promptText } from "$lib/editor/prompt.svelte";
   import { Button } from "$lib/components/ui/button";
   import * as ContextMenu from "$lib/components/ui/context-menu";
   import GripVertical from "@lucide/svelte/icons/grip-vertical";
@@ -74,20 +75,33 @@
     editor.addFile(entry.source, { at: order + 1, groupId: entry.groupId });
   }
 
-  function handleRename(): void {
+  async function handleRename(): Promise<void> {
     if (entry.kind === "file") {
-      const next = window.prompt(
-        "Custom title (leave empty to use filename):",
-        entry.customTitle ?? "",
-      );
+      const next = await promptText({
+        title: "Custom title",
+        description: "Override the default filename used as the section heading.",
+        label: "Title",
+        value: entry.customTitle ?? "",
+        placeholder: entry.source.name,
+      });
       if (next === null) return;
       editor.updateEntry(entry.id, { customTitle: next.trim() || null });
     } else if (entry.kind === "cover") {
-      const next = window.prompt("Cover title:", entry.title);
+      const next = await promptText({
+        title: "Cover title",
+        label: "Title",
+        value: entry.title,
+        placeholder: editor.rootName ?? "PDFy Project",
+      });
       if (next === null) return;
       editor.updateEntry(entry.id, { title: next.trim() || (editor.rootName ?? "PDFy Project") });
     } else if (entry.kind === "toc") {
-      const next = window.prompt("TOC title:", entry.title);
+      const next = await promptText({
+        title: "Table of contents title",
+        label: "Title",
+        value: entry.title,
+        placeholder: "Contents",
+      });
       if (next === null) return;
       editor.updateEntry(entry.id, { title: next.trim() || "Contents" });
     }

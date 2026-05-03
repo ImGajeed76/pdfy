@@ -12,6 +12,7 @@
   import EditorEmpty from "$lib/components/editor/EditorEmpty.svelte";
   import SettingsSheet from "$lib/components/editor/SettingsSheet.svelte";
   import RecentSheet from "$lib/components/editor/RecentSheet.svelte";
+  import PromptHost from "$lib/components/editor/PromptHost.svelte";
 
   // Browser-support gate: bounce unsupported browsers to /unsupported.
   onMount(() => {
@@ -163,6 +164,7 @@
 
   <SettingsSheet bind:open={settingsOpen} />
   <RecentSheet bind:open={recentOpen} />
+  <PromptHost />
 </div>
 
 <!-- Print-only: full document -->

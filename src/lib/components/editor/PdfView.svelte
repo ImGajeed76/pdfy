@@ -53,7 +53,10 @@
    * just attach the canvas as a single inserted child. No conflict with
    * Svelte's vdom because the wrapper has no other children.
    */
-  function attachCanvas(node: HTMLElement, canvas: HTMLCanvasElement): {
+  function attachCanvas(
+    node: HTMLElement,
+    canvas: HTMLCanvasElement,
+  ): {
     destroy: () => void;
   } {
     node.appendChild(canvas);
@@ -73,7 +76,8 @@
   {:else}
     {#if pageCount > 0}
       <p class="text-muted-foreground/70 mb-2 font-mono text-[10px] tabular-nums">
-        Rendered {pages.length} of {pageCount} {pageCount === 1 ? "page" : "pages"}
+        Rendered {pages.length} of {pageCount}
+        {pageCount === 1 ? "page" : "pages"}
       </p>
     {/if}
     <div class="flex flex-col items-center gap-3">

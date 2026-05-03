@@ -1,20 +1,32 @@
 <script lang="ts">
   import type { IndexEntry } from "$lib/editor/types";
   import { editor } from "$lib/editor/state.svelte";
+  import { promptText } from "$lib/editor/prompt.svelte";
   import { Button } from "$lib/components/ui/button";
   import X from "@lucide/svelte/icons/x";
   import Edit3 from "@lucide/svelte/icons/edit-3";
 
   let { entry }: { entry: Extract<IndexEntry, { kind: "cover" }> } = $props();
 
-  function handleEdit(): void {
-    const next = window.prompt("Cover title:", entry.title);
+  async function handleEdit(): Promise<void> {
+    const next = await promptText({
+      title: "Cover title",
+      label: "Title",
+      value: entry.title,
+      placeholder: editor.rootName ?? "PDFy Project",
+    });
     if (next === null) return;
     editor.updateEntry(entry.id, { title: next.trim() || (editor.rootName ?? "PDFy Project") });
   }
 
-  function handleEditSubtitle(): void {
-    const next = window.prompt("Subtitle (leave empty for none):", entry.subtitle ?? "");
+  async function handleEditSubtitle(): Promise<void> {
+    const next = await promptText({
+      title: "Subtitle",
+      description: "Optional. Leave empty to remove.",
+      label: "Subtitle",
+      value: entry.subtitle ?? "",
+      placeholder: "e.g. Source code submission",
+    });
     if (next === null) return;
     editor.updateEntry(entry.id, { subtitle: next.trim() || null });
   }
