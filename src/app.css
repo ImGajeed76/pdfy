@@ -6,6 +6,11 @@
 
 @import "@fontsource-variable/geist";
 
+@import "@fontsource-variable/geist-mono";
+
+/* hljs themes are dynamically loaded by the editor based on the user's
+   codeTheme setting (see editor/theme.ts). The default is GitHub Light. */
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

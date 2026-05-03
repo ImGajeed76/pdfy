@@ -27,6 +27,8 @@ export default ts.config(
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/explicit-function-return-type": ["error", { allowExpressions: true }],
       "no-undef": "off",
+      // SvelteKit type-safe routes via resolve() are not used in this project.
+      "svelte/no-navigation-without-resolve": "off",
     },
   },
   {

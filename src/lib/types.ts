@@ -13,18 +13,9 @@ export type PDFYFileSystemEntry =
       kind: "file";
       path: string; // Relative path from the root directory
       handle: FileSystemFileHandle;
-      selected: boolean;
-      content: string | null;
-      language: string | null; // Detected language for syntax highlighting
-      fileType: PDFYFileType | null; // To help with rendering
     };
 
 export type PDFYFileType = "code" | "rendered" | "text" | "graphic" | "binary";
-
-export enum RenderMode {
-  Rendered = "rendered",
-  Raw = "raw",
-}
 
 export interface IgnoreRuleSet {
   rules: string[]; // Raw rule strings from one .gitignore file

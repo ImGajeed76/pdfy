@@ -12,7 +12,7 @@ import {
 } from "$lib/types";
 import NodeIgnore from "ignore";
 
-async function processDirectory(
+export async function processDirectory(
   directoryHandle: FileSystemDirectoryHandle,
   currentPath: string = "", // Path of this directoryHandle, relative to the initial scan root
   // Chain of rule sets from .gitignore files in ancestor directories
@@ -140,10 +140,6 @@ async function processDirectory(
         kind: "file",
         path: entryPath,
         handle,
-        selected: false, // Assuming 'selected' is for UI state
-        content: null, // Content will be loaded on demand
-        language: null, // Language will be determined later
-        fileType: null, // File type will be determined later
       });
     } else if (handle.kind === "directory") {
       entries.push({
