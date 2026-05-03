@@ -1,6 +1,12 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
-  import { ArrowRight, Brackets, FileText, Layers, Lock, Rocket, Github } from "lucide-svelte";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import Brackets from "@lucide/svelte/icons/brackets";
+  import FileText from "@lucide/svelte/icons/file-text";
+  import Layers from "@lucide/svelte/icons/layers";
+  import Lock from "@lucide/svelte/icons/lock";
+  import Rocket from "@lucide/svelte/icons/rocket";
+  import Github from "$lib/components/icons/Github.svelte";
 
   const features = [
     {

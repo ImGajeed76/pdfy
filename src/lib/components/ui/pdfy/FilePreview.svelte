@@ -33,7 +33,7 @@
   import MarkdownIt from "markdown-it";
   import { determineFileDisplayProperties, readFileContent } from "$lib/fileSystem";
   import { onMount } from "svelte";
-  import { ChevronRight } from "lucide-svelte";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
 
   // Register Highlight.js languages
   hljs.registerLanguage("javascript", javascript);

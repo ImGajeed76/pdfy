@@ -1,7 +1,11 @@
 <script lang="ts">
   import { type PDFYFileSystemEntry, type PDFYFileType } from "$lib/types";
   import { Button } from "$lib/components/ui/button";
-  import { ChevronRight, FileCode, FileText, FileType, Folder } from "lucide-svelte";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import FileCode from "@lucide/svelte/icons/file-code";
+  import FileText from "@lucide/svelte/icons/file-text";
+  import FileType from "@lucide/svelte/icons/file-type";
+  import Folder from "@lucide/svelte/icons/folder";
   import { isLoadingFile, selectedFilesForPrint } from "$lib/stores";
   import * as Collapsible from "$lib/components/ui/collapsible/index.js";
   import FileTreeItem from "./FileTreeItem.svelte";
@@ -90,7 +94,7 @@
       </Collapsible.Content>
     </Collapsible.Root>
   {:else if entry.kind === "file"}
-    {@const Icon = getIcon(entry.kind, entry.selected ? entry.fileType : undefined)}
+    {@const Icon = getIcon(entry.kind, entry.selected ? (entry.fileType ?? undefined) : undefined)}
     <Button
       variant="ghost"
       class="hover:bg-muted/50 h-auto w-full justify-start py-1.5 text-sm {isSelected
