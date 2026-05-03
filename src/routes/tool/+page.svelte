@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
   import { toast } from "svelte-sonner";
   import { openDirectory } from "$lib/fileSystem";
   import * as Resizable from "$lib/components/ui/resizable/index.js";
@@ -13,14 +15,10 @@
   import FilePreview from "$lib/components/ui/pdfy/FilePreview.svelte";
   import { ScrollArea } from "$lib/components/ui/scroll-area";
 
-  let fsApiSupported = $state(true); // Assuming the API is supported
-
-  $effect(() => {
-    if (!window.showDirectoryPicker) {
-      fsApiSupported = false;
-      toast.error(
-        "Your browser does not support the File System Access API. Please use a compatible browser like Chrome or Edge.",
-      );
+  // Bounce unsupported browsers (Firefox, Safari, mobile) to the help page.
+  onMount(() => {
+    if (!("showDirectoryPicker" in window)) {
+      goto("/unsupported", { replaceState: true });
     }
   });
 
@@ -175,11 +173,7 @@
       </svg>
       <span>PDFy</span>
     </a>
-    <Button
-      onclick={handleLoadFolder}
-      disabled={!fsApiSupported || $isLoadingDirectory}
-      class="ml-auto"
-    >
+    <Button onclick={handleLoadFolder} disabled={$isLoadingDirectory} class="ml-auto">
       {#if $isLoadingDirectory}
         Loading...
       {:else}
@@ -189,56 +183,45 @@
     <Button variant="outline" onclick={handlePrint}>Print to PDF</Button>
   </header>
 
-  {#if !fsApiSupported}
-    <div class="flex flex-1 items-center justify-center p-4 print:hidden">
-      <p class="text-destructive text-center">
-        PDFy requires the File System Access API, which is not supported by your browser. <br /> Please
-        try a modern browser like Chrome, Edge, or Opera.
-      </p>
-    </div>
-  {:else}
-    <Resizable.PaneGroup direction="horizontal" class="flex-1 print:hidden">
-      <Resizable.Pane defaultSize={25} minSize={15}>
-        <div class="flex h-full items-start justify-center p-1 print:hidden">
-          {#if $isLoadingDirectory}
-            <p class="text-muted-foreground p-4">Loading directory structure...</p>
-          {:else if $fileTree}
-            <FileExplorer tree={$fileTree} />
-          {:else}
-            <p class="text-muted-foreground p-4 text-center">
-              Click "Load Project Folder" to begin.
-            </p>
-          {/if}
-        </div>
-      </Resizable.Pane>
-      <div class="flex h-full items-center print:hidden">
-        <Resizable.Handle withHandle class="h-[80%] bg-transparent" />
+  <Resizable.PaneGroup direction="horizontal" class="flex-1 print:hidden">
+    <Resizable.Pane defaultSize={25} minSize={15}>
+      <div class="flex h-full items-start justify-center p-1 print:hidden">
+        {#if $isLoadingDirectory}
+          <p class="text-muted-foreground p-4">Loading directory structure...</p>
+        {:else if $fileTree}
+          <FileExplorer tree={$fileTree} />
+        {:else}
+          <p class="text-muted-foreground p-4 text-center">Click "Load Project Folder" to begin.</p>
+        {/if}
       </div>
-      <Resizable.Pane defaultSize={75} class="py-5">
-        <div
-          class="bg-muted/20 h-full w-full rounded-tl-xl rounded-bl-xl border-2 border-r-transparent p-2 print:hidden"
-        >
-          <ScrollArea class="h-full p-3">
-            {#if $selectedFilesForPrint.length === 0}
-              <p class="text-muted-foreground p-6 text-center">
-                Select files from the explorer to preview them here.
-              </p>
-            {:else}
-              {#each $selectedFilesForPrint as selectedFile, _index (selectedFile.id)}
-                {#if selectedFile.kind === "file"}
-                  <FilePreview pdfyFile={selectedFile} />
-                {:else}
-                  <p class="text-muted-foreground p-4">
-                    {selectedFile.name} is not a file or is not selected.
-                  </p>
-                {/if}
-              {/each}
-            {/if}
-          </ScrollArea>
-        </div>
-      </Resizable.Pane>
-    </Resizable.PaneGroup>
-  {/if}
+    </Resizable.Pane>
+    <div class="flex h-full items-center print:hidden">
+      <Resizable.Handle withHandle class="h-[80%] bg-transparent" />
+    </div>
+    <Resizable.Pane defaultSize={75} class="py-5">
+      <div
+        class="bg-muted/20 h-full w-full rounded-tl-xl rounded-bl-xl border-2 border-r-transparent p-2 print:hidden"
+      >
+        <ScrollArea class="h-full p-3">
+          {#if $selectedFilesForPrint.length === 0}
+            <p class="text-muted-foreground p-6 text-center">
+              Select files from the explorer to preview them here.
+            </p>
+          {:else}
+            {#each $selectedFilesForPrint as selectedFile, _index (selectedFile.id)}
+              {#if selectedFile.kind === "file"}
+                <FilePreview pdfyFile={selectedFile} />
+              {:else}
+                <p class="text-muted-foreground p-4">
+                  {selectedFile.name} is not a file or is not selected.
+                </p>
+              {/if}
+            {/each}
+          {/if}
+        </ScrollArea>
+      </div>
+    </Resizable.Pane>
+  </Resizable.PaneGroup>
 </div>
 
 <div class="hidden print:block" aria-hidden="true">
