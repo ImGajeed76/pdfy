@@ -51,12 +51,16 @@ class EditorState {
   selectionAnchorId: string | null = $state(null);
   /** Scroll-position derived: currently most-visible entry in preview. */
   currentEntryId: string | null = $state(null);
+  /** True when an autosave is queued. Drives the saving indicator. */
+  isAutosaving = $state(false);
 
   // ── Tree state ──────────────────────────────────────────────────────────
   treeFilter = $state("");
   expandedFolders: SvelteSet<string> = new SvelteSet();
   // For visual highlighting in tree: which file is currently focused/previewed
   focusedFileId: string | null = $state(null);
+  // Anchor for shift-click range-add in the tree.
+  treeAnchorFileId: string | null = $state(null);
 
   // ── File content cache ──────────────────────────────────────────────────
   contentCache: SvelteMap<string, string> = new SvelteMap();
@@ -142,6 +146,15 @@ class EditorState {
     this.selectedIndexIds.clear();
     this.selectionAnchorId = null;
     this.currentEntryId = null;
+
+    // Look up the project id for this handle (if known) so behavior-learning
+    // and saved state both have access to the right project key BEFORE we
+    // run smart-auto-select.
+    const knownId = await tryFindProjectId(handle);
+    if (knownId) {
+      this.projectId = knownId;
+      await this.loadLearnedRejections();
+    }
 
     // Try to restore saved state for this project (matched by handle equality).
     const restored = await tryRestoreProjectState(handle);
@@ -303,6 +316,11 @@ class EditorState {
     opts: { at?: number; groupId?: string | null; persistContent?: boolean } = {},
   ): IndexEntry {
     this.snapshot();
+    // If user re-adds a previously rejected file, clear the rejection.
+    if (this.learnedRejections.has(file.path)) {
+      this.learnedRejections.delete(file.path);
+      void unlearnRejection(file.path, this.projectId);
+    }
     const entry: IndexEntry = {
       id: generateId(),
       kind: "file",
@@ -356,11 +374,18 @@ class EditorState {
   removeEntry(entryId: string): void {
     const idx = this.index.findIndex((e) => e.id === entryId);
     if (idx < 0) return;
+    const removed = this.index[idx];
     this.snapshot();
     this.index = this.index.filter((e) => e.id !== entryId);
     this.selectedIndexIds.delete(entryId);
     if (this.currentEntryId === entryId) this.currentEntryId = null;
     if (this.selectionAnchorId === entryId) this.selectionAnchorId = null;
+    // Behavior-learning: if a smart-added file is removed, remember the
+    // rejection for next time this project is opened.
+    if (removed.kind === "file" && this.smartAddedPaths.has(removed.source.path)) {
+      void learnRejection(removed.source.path, this.projectId);
+      this.learnedRejections.add(removed.source.path);
+    }
   }
 
   removeEntries(ids: string[]): void {
@@ -371,6 +396,36 @@ class EditorState {
     for (const id of ids) this.selectedIndexIds.delete(id);
     if (this.currentEntryId && idSet.has(this.currentEntryId)) this.currentEntryId = null;
     if (this.selectionAnchorId && idSet.has(this.selectionAnchorId)) this.selectionAnchorId = null;
+  }
+
+  /**
+   * Add all files between the tree anchor and the given file id (inclusive),
+   * walking the tree in depth-first order. Used for shift-click in the tree.
+   */
+  addTreeRange(toFileId: string): number {
+    if (!this.tree) return 0;
+    const flat: Extract<PDFYFileSystemEntry, { kind: "file" }>[] = [];
+    function walk(es: PDFYFileSystemEntry[]): void {
+      for (const e of es) {
+        if (e.kind === "file") flat.push(e);
+        else walk(e.children);
+      }
+    }
+    walk(this.tree);
+    const fromIdx = this.treeAnchorFileId
+      ? flat.findIndex((f) => f.id === this.treeAnchorFileId)
+      : -1;
+    const toIdx = flat.findIndex((f) => f.id === toFileId);
+    if (toIdx < 0) return 0;
+    if (fromIdx < 0) {
+      // No anchor: just add the single file.
+      this.addFile(flat[toIdx]);
+      return 1;
+    }
+    const [a, b] = fromIdx <= toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
+    const slice = flat.slice(a, b + 1);
+    this.addFiles(slice);
+    return slice.length;
   }
 
   /** Selection helpers used by IndexItem click handling. */
@@ -516,9 +571,26 @@ class EditorState {
 
   // ── Smart auto-select ───────────────────────────────────────────────────
 
+  /** Paths the user has previously rejected for this project. */
+  private learnedRejections: Set<string> = new Set();
+  /** Track which paths were just smart-added so removals can be learned. */
+  private smartAddedPaths: Set<string> = new Set();
+
+  async loadLearnedRejections(): Promise<void> {
+    if (!this.projectId) return;
+    try {
+      const { loadRejections } = await import("./behavior");
+      const r = await loadRejections(this.projectId);
+      this.learnedRejections = new Set(r.paths);
+    } catch {
+      this.learnedRejections = new Set();
+    }
+  }
+
   applySmartAutoSelect(): void {
     if (!this.tree) return;
-    const ordered = smartAutoSelect(this.tree);
+    const ordered = smartAutoSelect(this.tree).filter((f) => !this.learnedRejections.has(f.path));
+    this.smartAddedPaths = new Set(ordered.map((f) => f.path));
     if (this.settings.autoGroup) {
       // Map files to groups by suggested name.
       const groupNameToId: Record<string, string> = {};
@@ -690,6 +762,15 @@ async function rememberAndPersist(state: EditorState): Promise<void> {
   }
 }
 
+async function tryFindProjectId(handle: FileSystemDirectoryHandle): Promise<string | null> {
+  try {
+    const { findProjectIdForHandle } = await import("./recent");
+    return await findProjectIdForHandle(handle);
+  } catch {
+    return null;
+  }
+}
+
 async function tryRestoreProjectState(
   handle: FileSystemDirectoryHandle,
 ): Promise<{ id: string; state: { index: IndexEntry[]; groups: IndexGroup[] } } | null> {
@@ -702,6 +783,26 @@ async function tryRestoreProjectState(
     return { id, state };
   } catch {
     return null;
+  }
+}
+
+async function learnRejection(path: string, projectId: string | null): Promise<void> {
+  if (!projectId) return;
+  try {
+    const { rejectPath } = await import("./behavior");
+    await rejectPath(projectId, path);
+  } catch {
+    // non-fatal
+  }
+}
+
+async function unlearnRejection(path: string, projectId: string | null): Promise<void> {
+  if (!projectId) return;
+  try {
+    const { unrejectPath } = await import("./behavior");
+    await unrejectPath(projectId, path);
+  } catch {
+    // non-fatal
   }
 }
 
@@ -725,8 +826,12 @@ async function notifyRestored(restored: number, dropped: number): Promise<void> 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 export function scheduleAutosave(): void {
   if (saveTimer) clearTimeout(saveTimer);
+  editor.isAutosaving = true;
   saveTimer = setTimeout(async () => {
-    if (!editor.projectId) return;
+    if (!editor.projectId) {
+      editor.isAutosaving = false;
+      return;
+    }
     try {
       const { saveProjectState } = await import("./recent");
       await saveProjectState(editor.projectId, {
@@ -736,5 +841,6 @@ export function scheduleAutosave(): void {
     } catch {
       // non-fatal
     }
+    editor.isAutosaving = false;
   }, 600);
 }

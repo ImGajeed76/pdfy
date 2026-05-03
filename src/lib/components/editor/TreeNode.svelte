@@ -3,6 +3,7 @@
   import { editor } from "$lib/editor/state.svelte";
   import { determineFileDisplayProperties } from "$lib/fileSystem";
   import * as ContextMenu from "$lib/components/ui/context-menu";
+  import { toast } from "svelte-sonner";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import Folder from "@lucide/svelte/icons/folder";
   import FolderOpen from "@lucide/svelte/icons/folder-open";
@@ -77,14 +78,24 @@
     return File;
   }
 
-  function handleFileClick(file: PDFYFileSystemEntry & { kind: "file" }): void {
+  function handleFileClick(e: MouseEvent, file: PDFYFileSystemEntry & { kind: "file" }): void {
+    if (e.shiftKey) {
+      const added = editor.addTreeRange(file.id);
+      if (added > 1) {
+        toast.success(`Added ${added} files to plan`);
+      }
+      editor.treeAnchorFileId = file.id;
+      return;
+    }
     editor.focusedFileId = file.id;
+    editor.treeAnchorFileId = file.id;
     editor.ensureContent(file).catch(() => {});
   }
 
   function handleFileDoubleClick(file: PDFYFileSystemEntry & { kind: "file" }): void {
     editor.addFile(file);
     editor.focusedFileId = file.id;
+    editor.treeAnchorFileId = file.id;
   }
 
   function handleAddFile(file: PDFYFileSystemEntry & { kind: "file" }): void {
@@ -207,12 +218,12 @@
             style="padding-left: {depth * 12 + 6}px"
             role="button"
             tabindex="0"
-            onclick={() => handleFileClick(entry)}
+            onclick={(e) => handleFileClick(e, entry)}
             ondblclick={() => handleFileDoubleClick(entry)}
             onkeydown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                handleFileClick(entry);
+                handleFileClick(e as unknown as MouseEvent, entry);
               } else if (e.key === " ") {
                 e.preventDefault();
                 handleAddFile(entry);
@@ -256,7 +267,13 @@
           <Plus class="size-4" />
           Add to plan
         </ContextMenu.Item>
-        <ContextMenu.Item onclick={() => handleFileClick(entry)}>
+        <ContextMenu.Item
+          onclick={() => {
+            editor.focusedFileId = entry.id;
+            editor.treeAnchorFileId = entry.id;
+            editor.ensureContent(entry).catch(() => {});
+          }}
+        >
           <File class="size-4" />
           Preview only
         </ContextMenu.Item>

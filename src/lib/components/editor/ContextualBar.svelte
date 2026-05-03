@@ -49,7 +49,7 @@
 
   function isRenderable(
     entry: Extract<IndexEntry, { kind: "file" }>,
-  ): "md" | "html" | "xml" | "csv" | "svg" | null {
+  ): "md" | "html" | "xml" | "csv" | "svg" | "json" | null {
     const ext = entry.source.name.split(".").pop()?.toLowerCase();
     if (!ext) return null;
     if (ext === "md" || ext === "markdown") return "md";
@@ -57,6 +57,7 @@
     if (ext === "xml") return "xml";
     if (ext === "csv" || ext === "tsv") return "csv";
     if (ext === "svg") return "svg";
+    if (ext === "json" || ext === "jsonc" || ext === "json5") return "json";
     return null;
   }
 
@@ -67,6 +68,8 @@
     if (ext === "html" || ext === "htm") return editor.settings.defaultHtmlMode;
     if (ext === "xml") return editor.settings.defaultXmlMode;
     if (ext === "csv" || ext === "tsv") return editor.settings.defaultCsvMode;
+    if (ext === "json" || ext === "jsonc" || ext === "json5")
+      return editor.settings.defaultJsonMode;
     if (ext === "svg") return "rendered";
     return "raw";
   }
@@ -228,7 +231,7 @@
       </Button>
       {#if renderable && renderable !== "svg"}
         {@const labelRendered =
-          renderable === "csv" ? "Table" : renderable === "md" ? "Rendered" : "Rendered"}
+          renderable === "csv" ? "Table" : renderable === "json" ? "Tree" : "Rendered"}
         {@const labelRaw = "Raw"}
         <span class="bg-border/60 mx-1 h-4 w-px"></span>
         <Button

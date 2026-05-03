@@ -93,6 +93,13 @@
       <span>{editor.totalLines.toLocaleString()} lines</span>
       <span class="text-muted-foreground/40">·</span>
       <span>{formatPages(editor.pageEstimate)}</span>
+      {#if editor.isAutosaving}
+        <span class="text-muted-foreground/40">·</span>
+        <span class="text-primary/80 inline-flex items-center gap-1">
+          <span class="bg-primary inline-block size-1.5 animate-pulse rounded-full"></span>
+          Saving
+        </span>
+      {/if}
     </div>
   {/if}
 

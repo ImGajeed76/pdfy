@@ -2,15 +2,23 @@
   import type { IndexEntry } from "$lib/editor/types";
   import { editor } from "$lib/editor/state.svelte";
   import { determineFileDisplayProperties } from "$lib/fileSystem";
-  import { highlightToLines, languageForExtension } from "$lib/editor/highlight";
+  import { highlightWithShiki, shikiLangForExtension, type ShikiLine } from "$lib/editor/shiki";
   import MarkdownIt from "markdown-it";
+  // @ts-expect-error -- no types ship with markdown-it-katex
+  import katexPlugin from "markdown-it-katex";
   import CsvTable from "./CsvTable.svelte";
+  import JsonTree from "./JsonTree.svelte";
+  import NotebookView from "./NotebookView.svelte";
+  import DocxView from "./DocxView.svelte";
+  import PdfView from "./PdfView.svelte";
   import { Button } from "$lib/components/ui/button";
   import X from "@lucide/svelte/icons/x";
   import ChevronUp from "@lucide/svelte/icons/chevron-up";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
 
   const md = new MarkdownIt({ html: false, linkify: true, breaks: false });
+  // KaTeX math support: $inline$ and $$display$$ blocks render as math.
+  md.use(katexPlugin, { throwOnError: false });
 
   let {
     entry,
@@ -23,7 +31,7 @@
   } = $props();
 
   let extension = $derived(entry.source.name.split(".").pop()?.toLowerCase());
-  let language = $derived(languageForExtension(extension));
+  let shikiLang = $derived(shikiLangForExtension(extension));
   let fileType = $derived(determineFileDisplayProperties(entry.source.name).fileType);
   let renderMode = $derived(editor.effectiveRenderMode(entry));
   let showLineNumbers = $derived(editor.effectiveShowLineNumbers(entry));
@@ -47,11 +55,21 @@
     };
   });
 
-  let lines = $derived(
-    content !== null && fileType !== "graphic" && fileType !== "binary"
-      ? highlightToLines(content, language)
-      : [],
-  );
+  // Shiki is async. We compute lines in an effect.
+  let lines = $state<ShikiLine[]>([]);
+  $effect(() => {
+    if (content === null || fileType === "graphic" || fileType === "binary") {
+      lines = [];
+      return;
+    }
+    let cancelled = false;
+    highlightWithShiki(content, shikiLang, editor.settings.codeTheme).then((result) => {
+      if (!cancelled) lines = result;
+    });
+    return () => {
+      cancelled = true;
+    };
+  });
 
   let title = $derived(entry.customTitle || entry.source.name);
 
@@ -59,9 +77,25 @@
   let isBinary = $derived(fileType === "binary");
   let isCsv = $derived(extension === "csv");
   let isTsv = $derived(extension === "tsv");
+  let isJson = $derived(extension === "json" || extension === "jsonc" || extension === "json5");
+  let isNotebook = $derived(extension === "ipynb");
+  let isDocx = $derived(extension === "docx");
+  let isPdf = $derived(extension === "pdf");
   let renderAsTable = $derived(
     (isCsv || isTsv) && (entry.renderMode ?? editor.settings.defaultCsvMode) === "rendered",
   );
+  let renderAsTree = $derived(
+    isJson && (entry.renderMode ?? editor.settings.defaultJsonMode) === "rendered",
+  );
+
+  let parsedJson = $derived.by(() => {
+    if (!renderAsTree || content === null) return undefined;
+    try {
+      return JSON.parse(content) as unknown;
+    } catch {
+      return undefined;
+    }
+  });
   let isMarkdownRendered = $derived(
     fileType === "rendered" &&
       (extension === "md" || extension === "markdown") &&
@@ -163,10 +197,16 @@
 
   <!-- Body -->
   <div class="preview-body p-3 text-sm">
-    {#if content === null}
+    {#if isPdf}
+      <PdfView fileHandle={entry.source.handle} />
+    {:else if isDocx}
+      <DocxView fileHandle={entry.source.handle} />
+    {:else if isNotebook && content !== null}
+      <NotebookView source={content} />
+    {:else if content === null}
       <p class="text-muted-foreground py-2 text-xs">Loading…</p>
     {:else if isBinary}
-      <p class="text-muted-foreground py-2 text-xs">Binary file — preview not available.</p>
+      <p class="text-muted-foreground py-2 text-xs">Binary file, preview not available.</p>
     {:else if isImage}
       {#if imageUrl}
         <div
@@ -190,6 +230,10 @@
       </div>
     {:else if renderAsTable && content}
       <CsvTable {content} separator={isTsv ? "\t" : ","} />
+    {:else if renderAsTree && parsedJson !== undefined}
+      <JsonTree value={parsedJson} />
+    {:else if renderAsTree && parsedJson === undefined}
+      <p class="text-destructive py-2 text-xs">JSON parse error, showing raw text.</p>
     {:else if isMarkdownRendered && renderedHtml}
       <article class="markdown-body prose prose-sm dark:prose-invert max-w-none">
         <!-- eslint-disable-next-line svelte/no-at-html-tags -- markdown-it output, html: false -->
@@ -201,10 +245,10 @@
         {@html renderedHtml}
       </article>
     {:else}
-      <!-- eslint-disable svelte/no-at-html-tags -- highlight.js output, lines pre-escaped -->
+      <!-- eslint-disable svelte/no-at-html-tags -- shiki output, escaped + inline-styled -->
       <pre
-        class="hljs code-pre overflow-x-auto font-mono leading-snug whitespace-pre"
-        style="font-size: {editor.settings.codeFontSize}pt;"><code class="language-{language}"
+        class="code-pre shiki-pre overflow-x-auto font-mono leading-snug whitespace-pre"
+        style="font-size: {editor.settings.codeFontSize}pt;"><code class="language-{shikiLang}"
           >{#each lines as line (line.number)}<span class="code-line"
               >{#if showLineNumbers}<span class="code-num">{line.number}</span>{/if}<span
                 class="code-text">{@html line.html}</span

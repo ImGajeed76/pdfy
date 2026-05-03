@@ -3,7 +3,6 @@
   import { goto } from "$app/navigation";
   import * as Resizable from "$lib/components/ui/resizable";
   import { editor, scheduleAutosave } from "$lib/editor/state.svelte";
-  import { applyCodeTheme } from "$lib/editor/theme";
   import { applyPageSize } from "$lib/editor/print";
   import BrandBar from "$lib/components/editor/BrandBar.svelte";
   import ContextualBar from "$lib/components/editor/ContextualBar.svelte";
@@ -19,11 +18,6 @@
     if (!("showDirectoryPicker" in window)) {
       goto("/unsupported", { replaceState: true });
     }
-  });
-
-  // Apply current code theme + react to changes.
-  $effect(() => {
-    applyCodeTheme(editor.settings.codeTheme);
   });
 
   // Apply page size for print.

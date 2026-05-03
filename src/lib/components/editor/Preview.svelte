@@ -3,6 +3,7 @@
   import PreviewSection from "./PreviewSection.svelte";
   import CoverPreview from "./CoverPreview.svelte";
   import TocPreview from "./TocPreview.svelte";
+  import GroupDivider from "./GroupDivider.svelte";
   import { onMount } from "svelte";
 
   let { jumpRequest = $bindable() }: { jumpRequest: string | null } = $props();
@@ -76,6 +77,15 @@
 <div bind:this={scrollRoot} class="bg-background h-full overflow-y-auto">
   <div class="preview-stack mx-auto max-w-5xl p-6">
     {#each editor.index as entry, i (entry.id)}
+      {@const prev = i > 0 ? editor.index[i - 1] : null}
+      {@const currGroup = entry.kind === "file" ? entry.groupId : null}
+      {@const prevGroup = prev && prev.kind === "file" ? prev.groupId : null}
+      {#if currGroup && currGroup !== prevGroup}
+        {@const group = editor.groups.find((g) => g.id === currGroup)}
+        {#if group}
+          <GroupDivider label={group.label} />
+        {/if}
+      {/if}
       {#if entry.kind === "cover"}
         <CoverPreview {entry} />
       {:else if entry.kind === "toc"}
