@@ -3,6 +3,7 @@
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import Logo from "$lib/components/Logo.svelte";
   import { editor } from "$lib/editor/state.svelte";
+  import { track, bucketFileCount } from "$lib/analytics";
   import { toast } from "svelte-sonner";
   import FolderOpen from "@lucide/svelte/icons/folder-open";
   import Printer from "@lucide/svelte/icons/printer";
@@ -45,6 +46,10 @@
       toast.info("Add at least one file to the print plan first.");
       return;
     }
+    track("Print", {
+      files: bucketFileCount(editor.fileCount),
+      pageSize: editor.settings.pageSize,
+    });
     window.print();
   }
 

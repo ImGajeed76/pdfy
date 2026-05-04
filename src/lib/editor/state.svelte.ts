@@ -3,6 +3,7 @@ import type { PDFYFileSystemEntry } from "$lib/types";
 import { openDirectory, readFileContent, processDirectory } from "$lib/fileSystem";
 import { smartAutoSelect } from "./smart-select";
 import { estimateLines, estimatePagesForEntry } from "./estimates";
+import { track } from "$lib/analytics";
 import type { GlobalSettings, IndexEntry, ProjectSettings } from "./types";
 import {
   DEFAULT_HEADER_FOOTER,
@@ -139,6 +140,7 @@ class EditorState {
     this.isLoadingDirectory = false;
     if (!result) return { ok: false, reason: "cancelled-or-error" };
     await this.adoptHandleAndTree(result.handle, result.tree, { freshTreeOnly: false });
+    track("Open folder", { source: "picker" });
     return { ok: true };
   }
 
@@ -164,6 +166,7 @@ class EditorState {
     }
     this.isLoadingDirectory = false;
     await this.adoptHandleAndTree(handle, tree, { freshTreeOnly: false });
+    track("Open folder", { source: "recent" });
   }
 
   /**

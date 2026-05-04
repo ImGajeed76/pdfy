@@ -17,3 +17,13 @@ export function track(event: string, props?: PlausibleProps): void {
   if (typeof window === "undefined") return;
   window.plausible?.(event, props ? { props } : undefined);
 }
+
+/** Bucket a file count into a coarse band so the analytics dashboard stays
+    readable and individual sessions can't be reidentified by a precise file
+    total. Used for the Print event's `files` prop. */
+export function bucketFileCount(n: number): string {
+  if (n <= 5) return "1-5";
+  if (n <= 25) return "6-25";
+  if (n <= 100) return "26-100";
+  return "100+";
+}
