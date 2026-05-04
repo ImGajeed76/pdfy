@@ -307,7 +307,7 @@
             src="/foxes/trotting-192.webp"
             alt=""
             aria-hidden="true"
-            class="hero-cta-fox size-20 -scale-x-100 select-none sm:size-24"
+            class="pointer-events-none size-20 -scale-x-100 select-none sm:size-24"
           />
           <Button href="/editor" size="lg" class="group h-12 gap-2 px-6 text-base">
             Open PDFy
@@ -360,15 +360,6 @@
 </div>
 
 <style>
-  /* Trotting fox subtly trots toward the CTA button when the user hovers
-     anywhere in the bottom CTA section. Tiny detail, signals momentum. */
-  .hero-cta-fox {
-    transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  section:hover .hero-cta-fox {
-    transform: translateX(6px);
-  }
-
   /* Linear-style bordered hover effect for the trust cards.
    *
    * The card has a light background (= visible "border" color). A content box
