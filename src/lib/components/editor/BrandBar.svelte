@@ -10,6 +10,7 @@
   import Settings from "@lucide/svelte/icons/settings";
   import PanelTop from "@lucide/svelte/icons/panel-top";
   import Clock from "@lucide/svelte/icons/clock";
+  import CircleHelp from "@lucide/svelte/icons/circle-help";
   import Undo2 from "@lucide/svelte/icons/undo-2";
   import Redo2 from "@lucide/svelte/icons/redo-2";
   import X from "@lucide/svelte/icons/x";
@@ -144,6 +145,18 @@
       <span class="bg-border mx-1 h-5 w-px"></span>
     {/if}
 
+    <Button
+      href="/tutorial"
+      variant="ghost"
+      size="sm"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="size-9 p-0"
+      aria-label="Tutorial"
+      title="Tutorial"
+    >
+      <CircleHelp class="size-4" />
+    </Button>
     <Button
       variant="ghost"
       size="sm"

@@ -283,6 +283,7 @@
     >
       <p>&copy; {new Date().getFullYear()} {SITE_NAME} &middot; GPL v3.0</p>
       <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+        <a href="/tutorial" class="hover:text-foreground transition-colors">Tutorial</a>
         <a href="/faq" class="hover:text-foreground transition-colors">FAQ</a>
         <a href="/privacy" class="text-foreground" aria-current="page">Privacy</a>
         <a
