@@ -6,13 +6,14 @@
 </script>
 
 <svelte:head>
-  <title>Save the PDF · Tutorial · {SITE_NAME}</title>
+  <title>Save your code as a PDF · Tutorial · {SITE_NAME}</title>
   <meta
     name="description"
-    content="Click Print, then pick Save as PDF in your browser's print dialog. That's how PDFy makes the file."
+    content="How to save your code as a searchable PDF using your browser's print dialog. Pick Save as PDF, match the page size, no printer required."
   />
-  <meta property="og:title" content={`Save the PDF · Tutorial · ${SITE_NAME}`} />
+  <meta property="og:title" content={`Save your code as a PDF · Tutorial · ${SITE_NAME}`} />
   <meta property="og:description" content="Click Print, pick Save as PDF, done." />
+  <meta property="og:type" content="article" />
 </svelte:head>
 
 <header class="mb-10">

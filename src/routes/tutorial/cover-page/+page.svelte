@@ -6,16 +6,20 @@
 </script>
 
 <svelte:head>
-  <title>Cover page · Tutorial · {SITE_NAME}</title>
+  <title>Add a cover page to your code PDF · Tutorial · {SITE_NAME}</title>
   <meta
     name="description"
-    content="Add a cover page to a PDFy export, edit the title and subtitle in place, optional date."
+    content="How to add a cover page to your source-code PDF in PDFy. Edit the title, subtitle, and optional date in place."
   />
-  <meta property="og:title" content={`Cover page · Tutorial · ${SITE_NAME}`} />
+  <meta
+    property="og:title"
+    content={`Add a cover page to your code PDF · Tutorial · ${SITE_NAME}`}
+  />
   <meta
     property="og:description"
     content="Click +, then click the cover title to edit it. That's the whole interaction."
   />
+  <meta property="og:type" content="article" />
 </svelte:head>
 
 <header class="mb-10">

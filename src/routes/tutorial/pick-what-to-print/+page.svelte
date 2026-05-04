@@ -7,13 +7,17 @@
 </script>
 
 <svelte:head>
-  <title>Pick what to print · Tutorial · {SITE_NAME}</title>
+  <title>Pick which files to include in the PDF · Tutorial · {SITE_NAME}</title>
   <meta
     name="description"
-    content="The tree on the left is your library. The print plan in the middle is the actual PDF. Drag from one to the other."
+    content="How to choose which source files go into your code PDF: the tree on the left is your library, the print plan in the middle is the actual PDF, drag from one to the other."
   />
-  <meta property="og:title" content={`Pick what to print · Tutorial · ${SITE_NAME}`} />
+  <meta
+    property="og:title"
+    content={`Pick which files to include in the PDF · Tutorial · ${SITE_NAME}`}
+  />
   <meta property="og:description" content="Tree = library. Print plan = the actual PDF." />
+  <meta property="og:type" content="article" />
 </svelte:head>
 
 <header class="mb-10">

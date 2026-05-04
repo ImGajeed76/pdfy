@@ -7,13 +7,14 @@
 </script>
 
 <svelte:head>
-  <title>Browser support · Tutorial · {SITE_NAME}</title>
+  <title>Browser support for PDFy · Tutorial · {SITE_NAME}</title>
   <meta
     name="description"
-    content="Which browsers PDFy works in, and why Firefox and Safari are blocked at the editor."
+    content="Which browsers PDFy works in (Chrome, Edge, Brave, Opera, Arc, Vivaldi), and why Firefox and Safari can't open folders yet."
   />
-  <meta property="og:title" content={`Browser support · Tutorial · ${SITE_NAME}`} />
+  <meta property="og:title" content={`Browser support for PDFy · Tutorial · ${SITE_NAME}`} />
   <meta property="og:description" content="Chrome, Edge, Brave, Opera, Arc, Vivaldi." />
+  <meta property="og:type" content="article" />
 </svelte:head>
 
 <header class="mb-10">

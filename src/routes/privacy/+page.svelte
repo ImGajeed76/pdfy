@@ -3,7 +3,7 @@
   import Logo from "$lib/components/Logo.svelte";
   import Github from "$lib/components/icons/Github.svelte";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
-  import { SITE_NAME, SITE_AUTHOR, SITE_AUTHOR_URL, SITE_REPO } from "$lib/site";
+  import { SITE_NAME, SITE_URL, SITE_AUTHOR, SITE_AUTHOR_URL, SITE_REPO } from "$lib/site";
 
   // Pin the date so the page doesn't claim to have been updated on every
   // build. Bump manually when the substance changes.
@@ -18,19 +18,35 @@
     { id: "changes", label: "If something changes" },
     { id: "questions", label: "Questions" },
   ];
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: SITE_NAME, item: `${SITE_URL}/` },
+      { "@type": "ListItem", position: 2, name: "Privacy", item: `${SITE_URL}/privacy` },
+    ],
+  };
+
+  /* eslint-disable no-useless-escape */
+  const breadcrumbJsonLdHtml = `<script type="application/ld+json">${JSON.stringify(breadcrumbJsonLd)}<\/script>`;
+  /* eslint-enable no-useless-escape */
 </script>
 
 <svelte:head>
-  <title>Privacy, {SITE_NAME}</title>
+  <title>Privacy: your code stays in the browser · {SITE_NAME}</title>
   <meta
     name="description"
-    content="What PDFy does and does not do with your data. Files never leave your browser. Analytics is cookieless and self-hosted."
+    content="What PDFy does and does not do with your data. Source code never leaves your browser. Analytics is cookieless and self-hosted."
   />
-  <meta property="og:title" content={`Privacy, ${SITE_NAME}`} />
+  <meta property="og:title" content={`Privacy: your code stays in the browser · ${SITE_NAME}`} />
   <meta
     property="og:description"
     content="Plain-language disclosures. Files stay local. Analytics is cookieless."
   />
+  <meta property="og:type" content="website" />
+  <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+  {@html breadcrumbJsonLdHtml}
 </svelte:head>
 
 <div class="bg-background text-foreground flex min-h-screen flex-col">

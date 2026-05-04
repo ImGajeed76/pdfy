@@ -49,41 +49,41 @@
   const steps = [
     {
       icon: Folder,
-      title: "Pick a folder",
-      description: "Choose your project from your computer.",
+      title: "Pick a project folder",
+      description: "Open any local folder of source code.",
     },
     {
       icon: ListChecks,
       title: "Tick the files",
-      description: "Select what you want, tree included.",
+      description: "Choose which files go in, in any order.",
     },
     {
       icon: Printer,
       title: "Print to PDF",
-      description: "One click, browser-native.",
+      description: "One click, syntax highlighting included.",
     },
   ];
 
   const trust = [
     {
       icon: Lock,
-      title: "Local",
-      description: "Your files never leave your browser.",
+      title: "Local and private",
+      description: "Your code stays in the browser. No uploads, ever.",
     },
     {
       icon: Sparkles,
-      title: "Free",
-      description: "Forever. No signup.",
+      title: "Free forever",
+      description: "No signup, no paywall, no email required.",
     },
     {
       icon: Code,
       title: "Open source",
-      description: "Inspect the code on GitHub.",
+      description: "GPL v3 on GitHub. Inspect, fork, self-host.",
     },
     {
       icon: Search,
-      title: "Searchable",
-      description: "Real text, not screenshots.",
+      title: "Searchable text",
+      description: "Real text with syntax highlighting, not screenshots.",
     },
   ];
 
@@ -98,6 +98,17 @@
     url: `${SITE_URL}/`,
     description:
       "PDFy turns a folder of source code into a single searchable PDF with syntax highlighting. Runs in the browser, files never leave your machine.",
+    featureList: [
+      "Convert source code to PDF with syntax highlighting",
+      "Searchable, text-based output (not screenshots)",
+      "Wrap-aware pagination preserves long lines",
+      "Cover page and table of contents",
+      "Customizable headers and footers with templating",
+      "Optional line numbers",
+      "Respects .gitignore by default",
+      "Runs entirely in the browser, no upload",
+      "Free and open source under GPL v3",
+    ],
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     creator: { "@type": "Person", name: SITE_AUTHOR, url: SITE_AUTHOR_URL },
     sameAs: [SITE_REPO],
@@ -108,16 +119,21 @@
 </script>
 
 <svelte:head>
-  <title>PDFy, code to PDF in the browser</title>
+  <title>PDFy, free code to PDF converter in your browser</title>
   <meta
     name="description"
-    content="PDFy turns a folder of source code into a single searchable PDF with syntax highlighting. Runs entirely in your browser. No uploads, no signup."
+    content="Convert a folder of source code into a single searchable PDF with syntax highlighting. Free, open source, no upload. Great for coding assignments, code reviews, archives, and copyright filings."
   />
-  <meta property="og:title" content="PDFy, code to PDF in the browser" />
+  <meta
+    name="keywords"
+    content="code to pdf, source code to pdf, syntax highlighting pdf, print code as pdf, github repo to pdf, coding assignment pdf, source code archive"
+  />
+  <meta property="og:title" content="PDFy, free code to PDF converter in your browser" />
   <meta
     property="og:description"
-    content="Pick a folder, click print. Your code never leaves the browser."
+    content="Turn a folder of source code into one searchable PDF with syntax highlighting. Runs in your browser, nothing gets uploaded."
   />
+  <meta property="og:type" content="website" />
   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
   {@html softwareJsonLdHtml}
 </svelte:head>
@@ -184,11 +200,12 @@
           <h1
             class="text-5xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-6xl md:text-7xl"
           >
-            Folder in.<br /><span class="text-primary">Searchable</span> PDF out.
+            Code folder in.<br /><span class="text-primary">Searchable</span> PDF out.
           </h1>
 
           <p class="text-muted-foreground mt-7 max-w-xl text-lg sm:text-xl">
-            Pick a folder, click print. Everything happens in your browser.
+            Turn a project into one searchable PDF with syntax highlighting. Free, open source, runs
+            in your browser, nothing gets uploaded.
           </p>
 
           <div class="mt-10 flex flex-wrap items-center gap-3">
@@ -233,9 +250,13 @@
       <div class="mx-auto max-w-5xl">
         <div class="mb-14 flex flex-col items-center text-center">
           <span class="text-muted-foreground mb-3 font-mono text-xs tracking-wider uppercase">
-            How it works
+            How to turn code into a PDF
           </span>
           <h2 class="text-3xl font-semibold tracking-tight sm:text-4xl">Pick. Tick. Print.</h2>
+          <p class="text-muted-foreground mt-4 max-w-xl">
+            From a project folder to a finished, searchable PDF in three steps. No setup, no command
+            line.
+          </p>
         </div>
         <div class="bg-border/60 grid grid-cols-1 gap-px sm:grid-cols-3">
           {#each steps as step, i (step.title)}
@@ -263,9 +284,15 @@
       <div class="mx-auto max-w-4xl">
         <div class="mb-14 flex flex-col items-center text-center">
           <span class="text-muted-foreground mb-3 font-mono text-xs tracking-wider uppercase">
-            Why pdfy
+            Why developers use PDFy
           </span>
-          <h2 class="text-3xl font-semibold tracking-tight sm:text-4xl">What you get.</h2>
+          <h2 class="text-3xl font-semibold tracking-tight sm:text-4xl">
+            Built for source code, not screenshots.
+          </h2>
+          <p class="text-muted-foreground mt-4 max-w-xl">
+            Real text you can copy, search, and grep. Wrap-aware pagination so long lines don't
+            break. Designed for the way developers actually share and submit code.
+          </p>
         </div>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {#each trust as item (item.title)}
@@ -285,6 +312,138 @@
             </div>
           {/each}
         </div>
+      </div>
+    </section>
+
+    <hr class="border-foreground/15 mx-auto w-3/5" aria-hidden="true" />
+
+    <!-- USE CASES: editorial vertical list. Numbered chapters, no icons, no
+         cards. The shape contrast against the trust-card grid above keeps the
+         eye moving. Each row gets room for keyword-rich copy without feeling
+         like another box on the page. -->
+    <section class="px-6 py-24 sm:py-32" use:reveal>
+      <div class="mx-auto max-w-3xl">
+        <div class="mb-14 max-w-xl">
+          <span class="text-muted-foreground mb-3 block font-mono text-xs tracking-wider uppercase">
+            What people use PDFy for
+          </span>
+          <h2 class="text-3xl font-semibold tracking-tight sm:text-4xl">
+            One tool, every reason to print code.
+          </h2>
+          <p class="text-muted-foreground mt-4 leading-relaxed">
+            From a CS101 submission to a copyright filing, the workflow is the same: pick the
+            folder, tick the files, save the PDF.
+          </p>
+        </div>
+
+        <ul class="border-foreground/10 divide-foreground/10 divide-y border-y">
+          <li class="grid grid-cols-[3rem_1fr] gap-6 py-7 sm:grid-cols-[4rem_1fr] sm:gap-8 sm:py-8">
+            <span
+              class="text-muted-foreground/70 font-mono text-sm tabular-nums sm:text-base"
+              aria-hidden="true">01</span
+            >
+            <div>
+              <h3 class="text-lg font-medium tracking-tight sm:text-xl">Coding assignments</h3>
+              <p class="text-muted-foreground mt-2 leading-relaxed">
+                Submit a whole project as one searchable PDF with syntax highlighting, line numbers,
+                and a cover page. Most professors and graders accept exactly this format.
+              </p>
+            </div>
+          </li>
+          <li class="grid grid-cols-[3rem_1fr] gap-6 py-7 sm:grid-cols-[4rem_1fr] sm:gap-8 sm:py-8">
+            <span
+              class="text-muted-foreground/70 font-mono text-sm tabular-nums sm:text-base"
+              aria-hidden="true">02</span
+            >
+            <div>
+              <h3 class="text-lg font-medium tracking-tight sm:text-xl">
+                Code reviews and handouts
+              </h3>
+              <p class="text-muted-foreground mt-2 leading-relaxed">
+                Share a project with reviewers, mentors, or students offline. Real text means they
+                can copy snippets, annotate the file, and grep it from the command line.
+              </p>
+            </div>
+          </li>
+          <li class="grid grid-cols-[3rem_1fr] gap-6 py-7 sm:grid-cols-[4rem_1fr] sm:gap-8 sm:py-8">
+            <span
+              class="text-muted-foreground/70 font-mono text-sm tabular-nums sm:text-base"
+              aria-hidden="true">03</span
+            >
+            <div>
+              <h3 class="text-lg font-medium tracking-tight sm:text-xl">Project archives</h3>
+              <p class="text-muted-foreground mt-2 leading-relaxed">
+                Snapshot a repository as a single self-contained file. Useful for long-term
+                archives, portfolio projects, or freezing a working copy before a major rewrite.
+              </p>
+            </div>
+          </li>
+          <li class="grid grid-cols-[3rem_1fr] gap-6 py-7 sm:grid-cols-[4rem_1fr] sm:gap-8 sm:py-8">
+            <span
+              class="text-muted-foreground/70 font-mono text-sm tabular-nums sm:text-base"
+              aria-hidden="true">04</span
+            >
+            <div>
+              <h3 class="text-lg font-medium tracking-tight sm:text-xl">
+                Copyright and IP filings
+              </h3>
+              <p class="text-muted-foreground mt-2 leading-relaxed">
+                Produce a clean, paginated source listing for software copyright registrations or
+                patent disclosures, locally and without uploading a byte.
+              </p>
+            </div>
+          </li>
+        </ul>
+
+        <p class="text-muted-foreground mt-8 text-center text-sm sm:text-left">
+          Want the full breakdown?
+          <a
+            href="/code-to-pdf"
+            class="text-primary hover:text-primary/80 ml-1 inline-flex items-center gap-1 underline underline-offset-4"
+          >
+            Read the code-to-PDF guide
+            <ArrowRight class="size-3.5" />
+          </a>
+        </p>
+      </div>
+    </section>
+
+    <hr class="border-foreground/15 mx-auto w-3/5" aria-hidden="true" />
+
+    <!-- LEARN MORE: short paragraph with contextual links into the docs.
+         Internal links from body copy carry SEO weight; the footer doesn't. -->
+    <section class="px-6 py-20 sm:py-24" use:reveal>
+      <div class="mx-auto max-w-3xl text-center">
+        <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">Learn more</h2>
+        <p class="text-muted-foreground mt-4 leading-relaxed">
+          Read the
+          <a
+            href="/tutorial"
+            class="text-primary hover:text-primary/80 underline underline-offset-4"
+            >three-step tutorial</a
+          >
+          to make your first PDF, customise the
+          <a
+            href="/tutorial/cover-page"
+            class="text-primary hover:text-primary/80 underline underline-offset-4">cover page</a
+          >
+          and
+          <a
+            href="/tutorial/headers-and-footers"
+            class="text-primary hover:text-primary/80 underline underline-offset-4"
+            >headers and footers</a
+          >
+          with
+          <a
+            href="/tutorial/templating"
+            class="text-primary hover:text-primary/80 underline underline-offset-4"
+            >Mustache templates</a
+          >, or skim the
+          <a href="/faq" class="text-primary hover:text-primary/80 underline underline-offset-4"
+            >FAQ</a
+          >
+          for what languages are supported, how big a project can be, and where your code goes.
+        </p>
       </div>
     </section>
 

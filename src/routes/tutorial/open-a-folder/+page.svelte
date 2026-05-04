@@ -6,16 +6,20 @@
 </script>
 
 <svelte:head>
-  <title>Open a folder · Tutorial · {SITE_NAME}</title>
+  <title>Open a project folder for code-to-PDF · Tutorial · {SITE_NAME}</title>
   <meta
     name="description"
-    content="How to pick a project folder in PDFy, what the browser asks, and how .gitignore is handled."
+    content="How to open a local code folder in PDFy: what the browser asks, how the File System Access API works, how .gitignore is handled, and how to come back to a project later."
   />
-  <meta property="og:title" content={`Open a folder · Tutorial · ${SITE_NAME}`} />
+  <meta
+    property="og:title"
+    content={`Open a project folder for code-to-PDF · Tutorial · ${SITE_NAME}`}
+  />
   <meta
     property="og:description"
-    content="Pick a folder, grant the browser permission, and you're in."
+    content="Pick a code folder, grant the browser permission, and you're in. No upload step."
   />
+  <meta property="og:type" content="article" />
 </svelte:head>
 
 <header class="mb-10">

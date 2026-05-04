@@ -10,24 +10,27 @@
 </script>
 
 <svelte:head>
-  <title>Tutorial, {SITE_NAME}</title>
+  <title>How to convert code to PDF · Tutorial · {SITE_NAME}</title>
   <meta
     name="description"
-    content="A short tutorial for PDFy. Open a folder, pick what to print, save the PDF. Plus deeper pages on covers, table of contents, headers / footers, and templating."
+    content="Step-by-step tutorial for converting a folder of source code to a searchable PDF with PDFy. Open a folder, pick what to print, save the PDF. Plus deeper pages on covers, table of contents, headers, footers, and templating."
   />
-  <meta property="og:title" content={`Tutorial, ${SITE_NAME}`} />
+  <meta property="og:title" content={`How to convert code to PDF · Tutorial · ${SITE_NAME}`} />
   <meta
     property="og:description"
-    content="Three minutes to your first searchable PDF, plus a reference for the bits worth customising."
+    content="Three minutes to your first searchable code PDF, plus a reference for the bits worth customising."
   />
+  <meta property="og:type" content="website" />
 </svelte:head>
 
 <header class="mb-12">
   <p class="text-muted-foreground mb-3 font-mono text-xs tracking-wider uppercase">Tutorial</p>
-  <h1 class="text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">How PDFy works.</h1>
+  <h1 class="text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
+    How to turn code into a PDF.
+  </h1>
   <p class="text-muted-foreground mt-5 max-w-2xl text-lg leading-relaxed">
-    Three minutes to your first PDF if you only read the first three pages. The rest is here when
-    you want to make the output yours.
+    Three minutes to your first searchable PDF if you only read the first three pages. The rest is
+    here when you want to make the output yours.
   </p>
 </header>
 

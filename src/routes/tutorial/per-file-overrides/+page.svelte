@@ -7,16 +7,20 @@
 </script>
 
 <svelte:head>
-  <title>Per-file overrides · Tutorial · {SITE_NAME}</title>
+  <title>Line numbers and per-file overrides · Tutorial · {SITE_NAME}</title>
   <meta
     name="description"
-    content="Custom titles, line numbers per file, image scale and alignment, page-break controls."
+    content="How to enable line numbers per file, set custom titles, scale embedded images, and control page breaks in your code PDF."
   />
-  <meta property="og:title" content={`Per-file overrides · Tutorial · ${SITE_NAME}`} />
+  <meta
+    property="og:title"
+    content={`Line numbers and per-file overrides · Tutorial · ${SITE_NAME}`}
+  />
   <meta
     property="og:description"
     content="Per-entry settings live in the contextual bar at the top of the editor."
   />
+  <meta property="og:type" content="article" />
 </svelte:head>
 
 <header class="mb-10">

@@ -6,16 +6,20 @@
 </script>
 
 <svelte:head>
-  <title>Headers and footers · Tutorial · {SITE_NAME}</title>
+  <title>Headers and footers for code PDFs · Tutorial · {SITE_NAME}</title>
   <meta
     name="description"
-    content="Six slots per page, Mustache-templated. Configure once per project, applies to every sheet."
+    content="How to configure headers and footers on every page of your code PDF. Six slots per page, Mustache-templated, page-aware variables."
   />
-  <meta property="og:title" content={`Headers and footers · Tutorial · ${SITE_NAME}`} />
+  <meta
+    property="og:title"
+    content={`Headers and footers for code PDFs · Tutorial · ${SITE_NAME}`}
+  />
   <meta
     property="og:description"
     content="Six slots, page-aware variables, project-wide settings."
   />
+  <meta property="og:type" content="article" />
 </svelte:head>
 
 <header class="mb-10">

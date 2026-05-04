@@ -7,9 +7,13 @@
 
 <svelte:head>
   <title>Keyboard shortcuts · Tutorial · {SITE_NAME}</title>
-  <meta name="description" content="Every keyboard shortcut the PDFy editor recognises." />
+  <meta
+    name="description"
+    content="Every keyboard shortcut the PDFy editor recognises for navigating the print plan, editing entries, and printing."
+  />
   <meta property="og:title" content={`Keyboard shortcuts · Tutorial · ${SITE_NAME}`} />
   <meta property="og:description" content="The list of editor shortcuts in PDFy." />
+  <meta property="og:type" content="article" />
 </svelte:head>
 
 <header class="mb-10">

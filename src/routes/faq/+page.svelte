@@ -7,27 +7,54 @@
   import { SITE_NAME, SITE_URL, SITE_AUTHOR, SITE_AUTHOR_URL, SITE_REPO } from "$lib/site";
 
   // FAQ content is rendered twice: once as visible <details> entries, once
-  // as FAQPage JSON-LD so Google can surface rich snippets. They must match.
-  const faqs: { q: string; a: string }[] = [
+  // as FAQPage JSON-LD so Google can surface rich snippets.
+  // - `a` is the answer text shown to humans AND embedded in the JSON-LD.
+  // - `links` is optional, only rendered in the visible page (not in JSON-LD)
+  //   so the schema stays plain-text while the page gets real internal links.
+  type FaqLink = { href: string; label: string };
+  const faqs: { q: string; a: string; links?: FaqLink[] }[] = [
     {
       q: "Do my files leave the browser?",
       a: "No. PDFy uses the browser's File System Access API to read your folder, runs every step locally, and hands the result to your browser's print dialog. There is no upload step at any point.",
+      links: [{ href: "/privacy", label: "Privacy page" }],
     },
     {
       q: "Is PDFy free?",
-      a: "Free, open-source under GPL v3, and there is no account to create. The source is on GitHub if you want to inspect it or fork it.",
+      a: "Yes, free forever. PDFy is open-source under GPL v3 and there is no account to create, no email required, and no paywalled features. The source is on GitHub if you want to inspect it or fork it.",
+    },
+    {
+      q: "Can I use PDFy to submit a coding assignment?",
+      a: "Yes. PDFy is a popular way to turn a coding assignment into a single PDF that professors and graders can read. The output has syntax highlighting, optional line numbers, a cover page with your name and project title, and a table of contents. Everything stays on your machine while you build it, and the final PDF is plain searchable text, so an instructor can copy snippets out of it for feedback.",
+      links: [
+        { href: "/tutorial/open-a-folder", label: "Open a folder" },
+        { href: "/tutorial/cover-page", label: "Cover page" },
+        { href: "/tutorial/per-file-overrides", label: "Line numbers and overrides" },
+      ],
+    },
+    {
+      q: "Which programming languages are supported for syntax highlighting?",
+      a: "PDFy uses Shiki, which supports over 200 languages. The common ones include JavaScript, TypeScript, Python, Java, C, C++, C#, Go, Rust, Ruby, PHP, Swift, Kotlin, Scala, Dart, R, Julia, Lua, Perl, Elixir, Erlang, Haskell, OCaml, F#, Clojure, Shell, Bash, Zsh, PowerShell, SQL, HTML, CSS, SCSS, JSON, YAML, TOML, XML, Markdown, GraphQL, Dockerfile, Nginx, Makefile, Vim script, Solidity, Zig, Nim, V, and many more. Plain text and Markdown render cleanly even when no specific language is detected.",
+    },
+    {
+      q: "Does PDFy include line numbers?",
+      a: "Yes. Line numbers are off by default to keep the output clean, but you can turn them on per file from the editor's per-file overrides. Useful for code reviews, assignment submissions where the grader needs to refer to specific lines, and for any handout where the reader will discuss the code with someone else.",
+      links: [
+        { href: "/tutorial/per-file-overrides", label: "Per-file overrides" },
+        { href: "/tutorial/settings", label: "Settings reference" },
+      ],
     },
     {
       q: "Which browsers work?",
       a: "Anything with the File System Access API: Chrome, Edge, Brave, Opera, Arc. Firefox and Safari haven't shipped the API yet, so PDFy can't open folders there. The site itself loads fine and explains the situation if you visit on an unsupported browser.",
+      links: [{ href: "/tutorial/browser-support", label: "Browser support details" }],
     },
     {
       q: "Does the PDF stay searchable?",
-      a: "Yes. The output is real text, not a screenshot. You can Ctrl-F your way through it, copy lines, and let any code-aware tool index it. Syntax highlighting is preserved as styled text, not as images.",
+      a: "Yes. The output is real text, not a screenshot. You can Ctrl-F your way through it, copy lines, and let any code-aware tool index it. Syntax highlighting is preserved as styled text, not as images, so file size stays small and the output is friendly to grep, archive search, and copyright registration tooling.",
     },
     {
       q: "What file types does it handle?",
-      a: "Source code in any language Shiki supports gets syntax-highlighted. Plain text and Markdown are formatted nicely. Images get embedded. Binary files are skipped with a placeholder. PDFs in your folder are rasterised and embedded page-by-page.",
+      a: "Source code in any language Shiki supports gets syntax-highlighted. Plain text and Markdown are formatted nicely. Images get embedded. Binary files are skipped with a placeholder. PDFs already in your folder are rasterised and embedded page-by-page.",
     },
     {
       q: "How big a project can I print?",
@@ -36,6 +63,12 @@
     {
       q: "Can I customise the cover, table of contents, headers and footers?",
       a: "Yes. The cover and TOC titles are click-to-edit. Headers and footers have six slots (top and bottom, left, center, right) that accept Mustache templates with variables like {{title}}, {{page}}, {{path}}, {{date}}.",
+      links: [
+        { href: "/tutorial/cover-page", label: "Cover page" },
+        { href: "/tutorial/table-of-contents", label: "Table of contents" },
+        { href: "/tutorial/headers-and-footers", label: "Headers and footers" },
+        { href: "/tutorial/templating", label: "Templating variables" },
+      ],
     },
     {
       q: "Does it work offline?",
@@ -44,6 +77,7 @@
     {
       q: "Will my company's repo be safe to use this on?",
       a: "Yes. Nothing is uploaded, no third party sees your code, and there is no telemetry tied to file contents. The privacy page lists exactly what crosses the network (analytics page views, the GitHub API call for the home page's star count, and the static site assets themselves).",
+      links: [{ href: "/privacy", label: "Privacy page" }],
     },
     {
       q: "Why use PDFy instead of just printing each file?",
@@ -88,13 +122,14 @@
   <title>FAQ, {SITE_NAME}</title>
   <meta
     name="description"
-    content="Common questions about PDFy: where your files go, which browsers work, file size limits, customisation, offline use."
+    content="Common questions about PDFy: which programming languages are supported, using PDFy for coding assignments, line numbers, browser support, file size limits, and where your code goes."
   />
   <meta property="og:title" content={`FAQ, ${SITE_NAME}`} />
   <meta
     property="og:description"
-    content="Where your files go, which browsers work, what gets stored, and the small print."
+    content="Languages supported, using PDFy for assignments, line numbers, browser support, and what happens to your code."
   />
+  <meta property="og:type" content="website" />
   <!-- eslint-disable svelte/no-at-html-tags -->
   {@html faqJsonLdHtml}
   {@html breadcrumbJsonLdHtml}
@@ -194,8 +229,25 @@
                   class="text-muted-foreground/60 mt-1.5 size-5 shrink-0 transition-transform group-open:rotate-180"
                 />
               </summary>
-              <div class="text-muted-foreground pb-6 pl-12 text-base leading-relaxed sm:text-lg">
-                {f.a}
+              <div class="pb-6 pl-12">
+                <p class="text-muted-foreground text-base leading-relaxed sm:text-lg">
+                  {f.a}
+                </p>
+                {#if f.links && f.links.length > 0}
+                  <p
+                    class="text-muted-foreground/80 mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-2 text-sm"
+                  >
+                    <span class="font-mono text-[10px] tracking-wider uppercase">Related</span>
+                    {#each f.links as link (link.href)}
+                      <a
+                        href={link.href}
+                        class="text-primary hover:text-primary/80 underline underline-offset-4"
+                      >
+                        {link.label}
+                      </a>
+                    {/each}
+                  </p>
+                {/if}
               </div>
             </details>
           </li>

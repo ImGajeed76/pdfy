@@ -6,16 +6,20 @@
 </script>
 
 <svelte:head>
-  <title>Table of contents · Tutorial · {SITE_NAME}</title>
+  <title>Add a table of contents to a code PDF · Tutorial · {SITE_NAME}</title>
   <meta
     name="description"
-    content="Add a TOC entry to a PDFy export, edit the heading, customise the row template, paginate automatically."
+    content="How to add a table of contents to a source-code PDF: edit the heading, customise the row template, automatic pagination."
   />
-  <meta property="og:title" content={`Table of contents · Tutorial · ${SITE_NAME}`} />
+  <meta
+    property="og:title"
+    content={`Add a table of contents to a code PDF · Tutorial · ${SITE_NAME}`}
+  />
   <meta
     property="og:description"
     content="Click +, customise rows in the headers / footers sheet."
   />
+  <meta property="og:type" content="article" />
 </svelte:head>
 
 <header class="mb-10">

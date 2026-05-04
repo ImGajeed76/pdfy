@@ -4,13 +4,17 @@
 </script>
 
 <svelte:head>
-  <title>Things people get wrong · Tutorial · {SITE_NAME}</title>
+  <title>Common code-to-PDF mistakes and fixes · Tutorial · {SITE_NAME}</title>
   <meta
     name="description"
-    content="The handful of stumbling blocks new PDFy users hit, and how to fix each one in seconds."
+    content="The handful of stumbling blocks new PDFy users hit when converting code to PDF, and how to fix each one in seconds."
   />
-  <meta property="og:title" content={`Things people get wrong · Tutorial · ${SITE_NAME}`} />
+  <meta
+    property="og:title"
+    content={`Common code-to-PDF mistakes and fixes · Tutorial · ${SITE_NAME}`}
+  />
   <meta property="og:description" content="Common stumbling blocks and quick fixes." />
+  <meta property="og:type" content="article" />
 </svelte:head>
 
 <header class="mb-10">

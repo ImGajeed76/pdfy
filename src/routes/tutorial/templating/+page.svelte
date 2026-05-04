@@ -6,13 +6,14 @@
 </script>
 
 <svelte:head>
-  <title>Templating variables · Tutorial · {SITE_NAME}</title>
+  <title>Mustache templating variables for code PDFs · Tutorial · {SITE_NAME}</title>
   <meta
     name="description"
-    content="Every Mustache variable available in PDFy headers, footers, and TOC rows."
+    content="Every Mustache variable available in PDFy headers, footers, and TOC rows: page numbers, file metadata, dates, conditionals."
   />
-  <meta property="og:title" content={`Templating variables · Tutorial · ${SITE_NAME}`} />
+  <meta property="og:title" content={`Mustache templating variables · Tutorial · ${SITE_NAME}`} />
   <meta property="og:description" content="Page numbers, file metadata, dates, conditionals." />
+  <meta property="og:type" content="article" />
 </svelte:head>
 
 <header class="mb-10">

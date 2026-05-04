@@ -5,16 +5,17 @@
 </script>
 
 <svelte:head>
-  <title>Settings · Tutorial · {SITE_NAME}</title>
+  <title>Settings reference · Tutorial · {SITE_NAME}</title>
   <meta
     name="description"
-    content="Every PDFy setting and which layer it lives on: app preferences, project settings, or per-entry."
+    content="Every PDFy setting and which layer it lives on: app preferences, per-project settings, and per-entry overrides for code PDFs."
   />
-  <meta property="og:title" content={`Settings · Tutorial · ${SITE_NAME}`} />
+  <meta property="og:title" content={`Settings reference · Tutorial · ${SITE_NAME}`} />
   <meta
     property="og:description"
     content="App preferences vs project settings vs per-entry overrides."
   />
+  <meta property="og:type" content="article" />
 </svelte:head>
 
 <header class="mb-10">
