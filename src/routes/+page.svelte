@@ -291,7 +291,7 @@
           </h2>
           <p class="text-muted-foreground mt-4 max-w-xl">
             Real text you can copy, search, and grep. Wrap-aware pagination so long lines don't
-            break. Designed for the way developers actually share and submit code.
+            break. Made for assignments, code reviews, and anywhere a screenshot won't cut it.
           </p>
         </div>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
