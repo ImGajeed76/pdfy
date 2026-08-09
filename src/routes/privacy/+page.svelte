@@ -207,7 +207,7 @@
                 (e.g. "opened the tool"). No cookies, no cross-site tracking, no fingerprinting. IP
                 addresses are used to compute the visitor's country and then discarded. Plausible is
                 open-source and the instance runs at
-                <code class="text-foreground/70 font-mono text-sm">plausible.axonotes.ch</code>.
+                <code class="text-foreground/70 font-mono text-sm">analytics.oseifert.ch</code>.
               </span>
             </li>
             <li class="text-foreground/85 leading-relaxed">
